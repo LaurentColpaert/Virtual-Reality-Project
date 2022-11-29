@@ -152,8 +152,8 @@ int main(int argc, char* argv[])
 	//Shader shader(sourceV, sourceF);
 
 	//Or you can have your shader written in text files
-	char fileVert[128] = "/home/laurent/Documents/Polytech/MA2/Virtual Reality/project/src/vertSrc.txt";
-	char fileFrag[128] = "/home/laurent/Documents/Polytech/MA2/Virtual Reality/project/src/fragSrc.txt";
+	char fileVert[128] = "../../src/vertSrc.txt";
+	char fileFrag[128] = "../../src/fragSrc.txt";
 	Shader shader(fileVert, fileFrag);
 
 	// First object!
@@ -179,7 +179,7 @@ int main(int argc, char* argv[])
 	
 	stbi_set_flip_vertically_on_load(true);
 	int imWidth, imHeight, imNrChannels;
-	char file[128] = "/home/laurent/Documents/Polytech/MA2/Virtual Reality/project/src/assets/container.jpg";
+	char file[128] = "../../src/assets/container.jpg";
 	unsigned char* data = stbi_load(file, &imWidth, &imHeight, &imNrChannels, 0);
 	if (data)
 	{
