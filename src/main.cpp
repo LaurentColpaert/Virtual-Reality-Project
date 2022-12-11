@@ -17,8 +17,8 @@
 #include "./shader.h"
 #include "./object.h"
 
-const int width = 500;
-const int height = 500;
+const int width = 700;
+const int height = 700;
 
 
 GLuint compileShader(std::string shaderCode, GLenum shaderType);
@@ -233,7 +233,10 @@ void processInput(GLFWwindow* window) {
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-	glViewport(0,0,width,height);
+	if (width < height)
+	glViewport(0,0,width,width);
+	else
+	glViewport((width - height)/2,0,height,height);
 }
 
 
