@@ -36,7 +36,6 @@ public:
 
 	glm::mat4 model = glm::mat4(1.0);
 
-
 	Object(const char* path) {
 
 		// Read the file defined by the path argument 
@@ -138,8 +137,6 @@ public:
 
 
 	void makeObject(Shader shader, bool texture = true) {
-
-
 		//Create the VAO and VBO
 		//Put your data into your VBO
 		//Define VBO and VAO as active buffer and active vertex array

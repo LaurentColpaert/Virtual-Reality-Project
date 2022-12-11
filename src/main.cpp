@@ -5,8 +5,9 @@
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
-#include<glm/gtc/matrix_transform.hpp>
-#include<glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -23,6 +24,7 @@ const int height = 500;
 GLuint compileShader(std::string shaderCode, GLenum shaderType);
 GLuint compileProgram(GLuint vertexShader, GLuint fragmentShader);
 void processInput(GLFWwindow* window);
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 
 #ifndef NDEBUG
@@ -74,20 +76,10 @@ void APIENTRY glDebugOutput(GLenum source,
 }
 #endif
 
-Camera camera(glm::vec3(0.0, 0.0, 0.1));
-
+Camera camera(glm::vec3(1.0, 2.0, -6.0), glm::vec3(0.0, 3.0, -1.0), 90.0);
 
 int main(int argc, char* argv[])
 {
-	std::cout << "Welcome to exercice 7: " << std::endl;
-	std::cout << "Complete light equation and attenuation factor\n"
-		"Implement the complete light equation.\n"
-		"Make the light move with time closer and further of the model.\n"
-		"Put the attenuation factor into the calculations\n"
-		"\n";
-
-
-	//Boilerplate
 	//Create the OpenGL context 
 	if (!glfwInit()) {
 		throw std::runtime_error("Failed to initialise GLFW \n");
@@ -101,9 +93,8 @@ int main(int argc, char* argv[])
 	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 #endif
 
-
 	//Create the window
-	GLFWwindow* window = glfwCreateWindow(width, height, "Exercise 07", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(width, height, "Project", nullptr, nullptr);
 	if (window == NULL)
 	{
 		glfwTerminate();
@@ -118,7 +109,10 @@ int main(int argc, char* argv[])
 		throw std::runtime_error("Failed to initialize GLAD");
 	}
 
+	glViewport(0,0,width,height);
+	glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
 	glEnable(GL_DEPTH_TEST);
+
 
 #ifndef NDEBUG
 	int flags;
@@ -131,91 +125,29 @@ int main(int argc, char* argv[])
 		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 	}
 #endif
-
-	const std::string sourceV = "#version 330 core\n"
-		"in vec3 position; \n"
-		"in vec2 tex_coords; \n"
-		"in vec3 normal; \n"
-
-		"out vec3 v_frag_coord; \n"
-		"out vec3 v_normal; \n"
-
-		"uniform mat4 M; \n"
-		"uniform mat4 itM; \n"
-		"uniform mat4 V; \n"
-		"uniform mat4 P; \n"
-
-
-		" void main(){ \n"
-		"vec4 frag_coord = M*vec4(position, 1.0); \n"
-		"gl_Position = P*V*frag_coord; \n"
-		
-		"v_normal = vec3(itM * vec4(normal, 1.0)); \n"
-		"v_frag_coord = frag_coord.xyz; \n"
-		"\n" 
-		"}\n";
-
-	const std::string sourceF = "#version 330 core\n"
-		"out vec4 FragColor;\n"
-		"precision mediump float; \n"
-
-		"in vec3 v_frag_coord; \n"
-		"in vec3 v_normal; \n"
-
-		"uniform vec3 u_view_pos; \n"
-
-		//In GLSL you can use structures to better organize your code
-		//light
-		"struct Light{\n" 
-		"vec3 light_pos; \n"
-		"float ambient_strength; \n"
-		"float diffuse_strength; \n"
-		"float specular_strength; \n"
-		//attenuation factor
-		"float constant;\n"
-		"float linear;\n"
-		"float quadratic;\n"
-		"};\n"
-		"uniform Light light;"
-
-		"uniform float shininess; \n"
-		"uniform vec3 materialColour; \n"
-
-
-		"float specularCalculation(vec3 N, vec3 L, vec3 V ){ \n"
-			"vec3 R = reflect (-L,N);  \n " //reflect (-L,N) is  equivalent to //max (2 * dot(N,L) * N - L , 0.0) ;
-			"float cosTheta = dot(R , V); \n"
-			"float spec = pow(max(cosTheta,0.0), 32.0); \n"
-			"return light.specular_strength * spec;\n"
-		"}\n"
-
-		"void main() { \n"
-		"vec3 N = normalize(v_normal);\n"
-		"vec3 L = normalize(light.light_pos - v_frag_coord) ; \n"
-		"vec3 V = normalize(u_view_pos - v_frag_coord); \n"
-		"float specular = specularCalculation( N, L, V); \n"
-		"float diffuse = light.diffuse_strength * max(dot(N,L),0.0);\n"
-		"float distance = length(light.light_pos - v_frag_coord);"
-		"float attenuation = 1 / (light.constant + light.linear * distance + light.quadratic * distance * distance);"
-		"float light = light.ambient_strength + attenuation * (diffuse + specular); \n"
-		"FragColor = vec4(materialColour * vec3(light), 1.0); \n"
-		"} \n";
 	
-	Shader shader(sourceV, sourceF);
-
-	
+	char vertexPath[] = PATH_TO_SHADER "/vertSrc.vs";
+	char fragPath[] = PATH_TO_SHADER "/fragSrc.fs";
+	Shader shader(vertexPath, fragPath);
 
 	char path[] = PATH_TO_OBJECTS "/sphere_smooth.obj";
-
-	Object sphere1(path);
-	sphere1.makeObject(shader, false);
-
 	char plane_path[] = PATH_TO_OBJECTS "/plane.obj";
+	char tree_path[] = PATH_TO_OBJECTS "/lowpoly_tree.obj";
+
+	Object sphere(path);
+	sphere.makeObject(shader);
+	sphere.model = glm::translate(sphere.model,glm::vec3(0.0,2.0,0.0));
 
 	Object plane(plane_path);
-	plane.makeObject(shader, false);
+	plane.makeObject(shader);
+	plane.model = glm::translate(plane.model,glm::vec3(0.0,0.0,0.0));
+	plane.model = glm::scale(plane.model, glm::vec3(4.,4.,4.));
 
-	
+
+	Object tree(tree_path);
+	tree.makeObject(shader);
+	tree.model = glm::translate(tree.model,glm::vec3(1.0,0.0,-1.0));
+	tree.model = glm::scale(tree.model, glm::vec3(0.2,0.2,0.2));
 
 	double prev = 0;
 	int deltaFrame = 0;
@@ -232,27 +164,18 @@ int main(int argc, char* argv[])
 		}
 	};
 
-
 	glm::vec3 light_pos = glm::vec3(1.0, 2.0, 1.5);
-	glm::mat4 model = glm::mat4(1.0);
-	model = glm::translate(model, glm::vec3(0.0, 0.0, -2.0));
-	model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
-
-	glm::mat4 inverseModel = glm::transpose( glm::inverse(model));
-
 	glm::mat4 view = camera.GetViewMatrix();
 	glm::mat4 perspective = camera.GetProjectionMatrix();
 
-	float ambient = 0.1;
+	float ambient = 0.4;
 	float diffuse = 0.5;
 	float specular = 0.8;
 
 	glm::vec3 materialColour = glm::vec3(0.2,0.6,0.8);
 
 	//Rendering
-
 	shader.use();
-	
 	shader.setFloat("shininess", 32.0f);
 	shader.setVector3f("materialColour", materialColour);
 	shader.setFloat("light.ambient_strength", ambient);
@@ -271,55 +194,46 @@ int main(int argc, char* argv[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		shader.use();
-		shader.setMatrix4("M", model);
-		shader.setMatrix4("itM", inverseModel);
+		shader.setMatrix4("M", sphere.model);
+		shader.setMatrix4("itM", glm::inverseTranspose(sphere.model));
+		sphere.draw();
+		shader.setMatrix4("M", plane.model);
+		shader.setMatrix4("itM", glm::inverseTranspose(plane.model));
+		plane.draw();
+		//shader.setMatrix4("itM", glm::inverseTranspose(tree.model));
+		//tree.draw();
 		shader.setMatrix4("V", view);
 		shader.setMatrix4("P", perspective);
 		shader.setVector3f("u_view_pos", camera.Position);
 
 		auto delta = light_pos + glm::vec3(0.0,0.0,2 * std::sin(now));
 		shader.setVector3f("light.light_pos", delta);
-		sphere1.draw();
-		plane.draw();
 		
 		fps(now);
 		glfwSwapBuffers(window);
 	}
-
 	//clean up ressource
 	glfwDestroyWindow(window);
 	glfwTerminate();
-
 	return 0;
 }
 
 
 void processInput(GLFWwindow* window) {
-	
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)		glfwSetWindowShouldClose(window, true);
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)		    camera.ProcessKeyboardMovement(LEFT, 0.1);
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)		    camera.ProcessKeyboardMovement(RIGHT, 0.1);
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)		    camera.ProcessKeyboardMovement(FORWARD, 0.1);
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)		    camera.ProcessKeyboardMovement(BACKWARD, 0.1);
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)		camera.ProcessKeyboardRotation(1, 0.0, 1);
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)		camera.ProcessKeyboardRotation(-1, 0.0, 1);
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)		    camera.ProcessKeyboardRotation(0.0, 1.0, 1);
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)		camera.ProcessKeyboardRotation(0.0, -1.0, 1);
+}
 
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera.ProcessKeyboardMovement(LEFT, 0.1);
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera.ProcessKeyboardMovement(RIGHT, 0.1);
-
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera.ProcessKeyboardMovement(FORWARD, 0.1);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera.ProcessKeyboardMovement(BACKWARD, 0.1);
-
-	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-		camera.ProcessKeyboardRotation(1, 0.0, 1);
-	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-		camera.ProcessKeyboardRotation(-1, 0.0, 1);
-
-	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-		camera.ProcessKeyboardRotation(0.0, 1.0, 1);
-	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-		camera.ProcessKeyboardRotation(0.0, -1.0, 1);
-
-
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+	glViewport(0,0,width,height);
 }
 
 
