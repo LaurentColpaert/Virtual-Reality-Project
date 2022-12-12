@@ -9,22 +9,27 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
-
 #include "./camera.h"
-#include "./shader.h"
+#include "./simple_shader.h"
+#include "./tess_shader.h"
 #include "./object.h"
+#include "./terrain_generation.h"
 
-const int width = 700;
-const int height = 700;
+const int src_width = 700;
+const int src_height = 700;
 
+Camera camera(glm::vec3(0.0, 40.0, 0.0), glm::vec3(0.0, 1.0, 0.0), 90.0);
+
+float lastX = src_width / 2.0f;
+float lastY = src_height / 2.0f;
+bool firstMouse = true;
 
 GLuint compileShader(std::string shaderCode, GLenum shaderType);
 GLuint compileProgram(GLuint vertexShader, GLuint fragmentShader);
 void processInput(GLFWwindow* window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 
 #ifndef NDEBUG
@@ -76,7 +81,6 @@ void APIENTRY glDebugOutput(GLenum source,
 }
 #endif
 
-Camera camera(glm::vec3(1.0, 2.0, -6.0), glm::vec3(0.0, 3.0, -1.0), 90.0);
 
 int main(int argc, char* argv[])
 {
@@ -94,7 +98,7 @@ int main(int argc, char* argv[])
 #endif
 
 	//Create the window
-	GLFWwindow* window = glfwCreateWindow(width, height, "Project", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(src_width, src_height, "Project", nullptr, nullptr);
 	if (window == NULL)
 	{
 		glfwTerminate();
@@ -109,9 +113,22 @@ int main(int argc, char* argv[])
 		throw std::runtime_error("Failed to initialize GLAD");
 	}
 
-	glViewport(0,0,width,height);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
+
+	glViewport(0,0,src_width,src_height);
 	glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
 	glEnable(GL_DEPTH_TEST);
+	
+	//comment to use texture
+	//glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+	//comment to stop using the mouse to move
+	// glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+	GLint maxTessLevel;
+	glGetIntegerv(GL_MAX_TESS_GEN_LEVEL,&maxTessLevel);
+	printf("Max available tesselation level : %d", maxTessLevel);
+	glPatchParameteri(GL_PATCH_VERTICES,4);
 
 
 #ifndef NDEBUG
@@ -126,6 +143,7 @@ int main(int argc, char* argv[])
 	}
 #endif
 	
+	Terrain terrain = Terrain();
 	char vertexPath[] = PATH_TO_SHADER "/vertSrc.vs";
 	char fragPath[] = PATH_TO_SHADER "/fragSrc.fs";
 	Shader shader(vertexPath, fragPath);
@@ -137,7 +155,7 @@ int main(int argc, char* argv[])
 	Object sphere(path);
 	sphere.makeObject(shader);
 	sphere.model = glm::translate(sphere.model,glm::vec3(0.0,2.0,0.0));
-
+	/*
 	Object plane(plane_path);
 	plane.makeObject(shader);
 	plane.model = glm::translate(plane.model,glm::vec3(0.0,0.0,0.0));
@@ -148,7 +166,9 @@ int main(int argc, char* argv[])
 	tree.makeObject(shader);
 	tree.model = glm::translate(tree.model,glm::vec3(1.0,0.0,-1.0));
 	tree.model = glm::scale(tree.model, glm::vec3(0.2,0.2,0.2));
+*/
 
+	
 	double prev = 0;
 	int deltaFrame = 0;
 	//fps function
@@ -185,6 +205,7 @@ int main(int argc, char* argv[])
 	shader.setFloat("light.linear", 0.14);
 	shader.setFloat("light.quadratic", 0.07);
 	
+	glfwSwapInterval(1);
 	while (!glfwWindowShouldClose(window)) {
 		processInput(window);
 		view = camera.GetViewMatrix();
@@ -197,11 +218,11 @@ int main(int argc, char* argv[])
 		shader.setMatrix4("M", sphere.model);
 		shader.setMatrix4("itM", glm::inverseTranspose(sphere.model));
 		sphere.draw();
-		shader.setMatrix4("M", plane.model);
+		/*shader.setMatrix4("M", plane.model);
 		shader.setMatrix4("itM", glm::inverseTranspose(plane.model));
 		plane.draw();
 		//shader.setMatrix4("itM", glm::inverseTranspose(tree.model));
-		//tree.draw();
+		//tree.draw();*/
 		shader.setMatrix4("V", view);
 		shader.setMatrix4("P", perspective);
 		shader.setVector3f("u_view_pos", camera.Position);
@@ -209,15 +230,18 @@ int main(int argc, char* argv[])
 		auto delta = light_pos + glm::vec3(0.0,0.0,2 * std::sin(now));
 		shader.setVector3f("light.light_pos", delta);
 		
+		terrain.Use(camera,src_width,src_height);
+
 		fps(now);
 		glfwSwapBuffers(window);
 	}
 	//clean up ressource
+	terrain.Destroy();
+
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	return 0;
 }
-
 
 void processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)		glfwSetWindowShouldClose(window, true);
@@ -239,4 +263,25 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	glViewport((width - height)/2,0,height,height);
 }
 
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
 
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
