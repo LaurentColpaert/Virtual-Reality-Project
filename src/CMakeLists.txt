@@ -1,7 +1,7 @@
 project("main")
 
 #Put the sources into a variable
-set(SOURCE_MAIN "main.cpp" "camera.h" "shader.h")
+set(SOURCE_MAIN "main.cpp" "camera.h" "simple_shader.h" "tess_shader.h" "terrain_generation.h")
 
 
 add_compile_definitions(PATH_TO_SHADER="${CMAKE_CURRENT_SOURCE_DIR}/shaders")

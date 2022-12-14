@@ -18,7 +18,7 @@
 const int src_width = 700;
 const int src_height = 700;
 
-Camera camera(glm::vec3(0.0, 40.0, 0.0), glm::vec3(0.0, 1.0, 0.0), 90.0);
+Camera camera(glm::vec3(0.0, 3.0, -5.0), glm::vec3(0.0, 0.5, 0.0), 90.0);
 
 float lastX = src_width / 2.0f;
 float lastY = src_height / 2.0f;
@@ -30,6 +30,8 @@ void processInput(GLFWwindow* window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+std::vector<Vertex> make_grid(int length, float density_per_cell);
+
 
 
 #ifndef NDEBUG
@@ -113,12 +115,13 @@ int main(int argc, char* argv[])
 		throw std::runtime_error("Failed to initialize GLAD");
 	}
 
-	glfwSetCursorPosCallback(window, mouse_callback);
+	//glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 
 	glViewport(0,0,src_width,src_height);
 	glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
 	glEnable(GL_DEPTH_TEST);
+
 	
 	//comment to use texture
 	//glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
@@ -129,7 +132,6 @@ int main(int argc, char* argv[])
 	glGetIntegerv(GL_MAX_TESS_GEN_LEVEL,&maxTessLevel);
 	printf("Max available tesselation level : %d", maxTessLevel);
 	glPatchParameteri(GL_PATCH_VERTICES,4);
-
 
 #ifndef NDEBUG
 	int flags;
@@ -144,31 +146,13 @@ int main(int argc, char* argv[])
 #endif
 	
 	Terrain terrain = Terrain();
-	char vertexPath[] = PATH_TO_SHADER "/vertSrc.vs";
-	char fragPath[] = PATH_TO_SHADER "/fragSrc.fs";
-	Shader shader(vertexPath, fragPath);
+	Shader shader(PATH_TO_SHADER "/vertSrc.vs", PATH_TO_SHADER "/fragSrc.fs");
 
-	char path[] = PATH_TO_OBJECTS "/sphere_smooth.obj";
-	char plane_path[] = PATH_TO_OBJECTS "/plane.obj";
-	char tree_path[] = PATH_TO_OBJECTS "/lowpoly_tree.obj";
+	int length = 10;
+	float density_per_cell = 4.0;
+	Object plane = Object();
+	plane.makeObject(make_grid(length,density_per_cell),length*length*6*density_per_cell*density_per_cell,shader);
 
-	Object sphere(path);
-	sphere.makeObject(shader);
-	sphere.model = glm::translate(sphere.model,glm::vec3(0.0,2.0,0.0));
-	/*
-	Object plane(plane_path);
-	plane.makeObject(shader);
-	plane.model = glm::translate(plane.model,glm::vec3(0.0,0.0,0.0));
-	plane.model = glm::scale(plane.model, glm::vec3(4.,4.,4.));
-
-
-	Object tree(tree_path);
-	tree.makeObject(shader);
-	tree.model = glm::translate(tree.model,glm::vec3(1.0,0.0,-1.0));
-	tree.model = glm::scale(tree.model, glm::vec3(0.2,0.2,0.2));
-*/
-
-	
 	double prev = 0;
 	int deltaFrame = 0;
 	//fps function
@@ -184,7 +168,6 @@ int main(int argc, char* argv[])
 		}
 	};
 
-	glm::vec3 light_pos = glm::vec3(1.0, 2.0, 1.5);
 	glm::mat4 view = camera.GetViewMatrix();
 	glm::mat4 perspective = camera.GetProjectionMatrix();
 
@@ -192,12 +175,12 @@ int main(int argc, char* argv[])
 	float diffuse = 0.5;
 	float specular = 0.8;
 
-	glm::vec3 materialColour = glm::vec3(0.2,0.6,0.8);
+	glm::vec3 light_pos = glm::vec3(5.0, 2.0, 5);
+	glm::vec3 materialColour = glm::vec3(0.,0.,0.5);	
 
 	//Rendering
 	shader.use();
-	shader.setFloat("shininess", 32.0f);
-	shader.setVector3f("materialColour", materialColour);
+	shader.setFloat("shininess", 22.0f);
 	shader.setFloat("light.ambient_strength", ambient);
 	shader.setFloat("light.diffuse_strength", diffuse);
 	shader.setFloat("light.specular_strength", specular);
@@ -215,22 +198,18 @@ int main(int argc, char* argv[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		shader.use();
-		shader.setMatrix4("M", sphere.model);
-		shader.setMatrix4("itM", glm::inverseTranspose(sphere.model));
-		sphere.draw();
-		/*shader.setMatrix4("M", plane.model);
+		shader.setMatrix4("M", plane.model);
 		shader.setMatrix4("itM", glm::inverseTranspose(plane.model));
+		shader.setVector3f("materialColour", materialColour);
 		plane.draw();
-		//shader.setMatrix4("itM", glm::inverseTranspose(tree.model));
-		//tree.draw();*/
 		shader.setMatrix4("V", view);
 		shader.setMatrix4("P", perspective);
 		shader.setVector3f("u_view_pos", camera.Position);
 
 		auto delta = light_pos + glm::vec3(0.0,0.0,2 * std::sin(now));
 		shader.setVector3f("light.light_pos", delta);
-		
-		terrain.Use(camera,src_width,src_height);
+		shader.setFloat("time",now);
+		// terrain.Use(camera,src_width,src_height);
 
 		fps(now);
 		glfwSwapBuffers(window);
@@ -284,4 +263,49 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+std::vector<Vertex> make_grid(int length, float density_per_cell){
+	std::vector<Vertex> vertices;
+	float size = length * density_per_cell;
+	float j,i;
+	float addition = 1 / density_per_cell;
+	for(float q=0; q< size; q++){
+		j = q / density_per_cell;
+		for(float w=0; w<size; w++){
+			i = w / density_per_cell;
+			Vertex v1,v2,v3,v4,v5,v6;
+			v1.Position = glm::vec3(i,0,j+addition);
+			v1.Texture = glm::vec2(0.0);
+			v1.Normal = glm::vec3(0.0,0.0,1.0);
+
+			v2.Position = glm::vec3(i,0,j);
+			v2.Texture = glm::vec2(0.0);
+			v2.Normal = glm::vec3(0.0,0.0,1.0);
+
+			v3.Position = glm::vec3(i+addition,0,j);
+			v3.Texture = glm::vec2(0.0);
+			v3.Normal = glm::vec3(0.0,0.0,1.0);
+
+			v4.Position = glm::vec3(i,0,j+addition);
+			v4.Texture = glm::vec2(0.0);
+			v4.Normal = glm::vec3(0.0,0.0,1.0);
+
+			v5.Position = glm::vec3(i+addition,0,j+addition);
+			v5.Texture = glm::vec2(0.0);
+			v5.Normal = glm::vec3(0.0,0.0,1.0);
+
+			v6.Position = glm::vec3(i+addition,0,j);
+			v6.Texture = glm::vec2(0.0);
+			v6.Normal = glm::vec3(0.0,0.0,1.0);
+
+			vertices.push_back(v1);
+			vertices.push_back(v2);
+			vertices.push_back(v3);
+			vertices.push_back(v4);
+			vertices.push_back(v5);
+			vertices.push_back(v6);
+		}
+	}
+	return vertices;
 }
