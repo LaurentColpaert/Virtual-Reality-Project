@@ -82,7 +82,7 @@ public:
         Load_buffer();   
     }
 
-    void Use(Camera camera,float width,float height){
+    void draw(Camera camera,float width,float height){
         tessHeightMapShader.use();
 
         // view/projection transformations
@@ -95,7 +95,7 @@ public:
         glDrawArrays(GL_PATCHES, 0, NUM_PATCH_PTS*rez*rez);
     }
 
-    void Destroy(){
+    void destroy(){
         glDeleteVertexArrays(1, &terrainVAO);
         glDeleteBuffers(1, &terrainVBO);
     }
