@@ -14,7 +14,7 @@ uniform mat4 P;
 uniform float time;
 
 void main(){ 
-    vec2 dir = normalize(vec2(1,1));
+    vec2 dir = normalize(vec2(1,0));
     float k = 2;
     float speed = sqrt(9.8/k);
     float steepness = 0.5;
@@ -26,7 +26,6 @@ void main(){
     vec3 new_pos = vec3(position.x +dir.x* a * cos(f), a * sin(f), position.z + dir.y * a *cos(f));
     vec4 frag_coord = M*vec4(new_pos, 1.0); 
     gl_Position = P*V*frag_coord; 
-
 
     //normal
     vec3 tangent = vec3(1 - dir.x * dir.x * steepness * sin(f),dir.x * steepness * cos(f), - dir.x * dir.y * steepness * sin(f));

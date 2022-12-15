@@ -4,6 +4,11 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <map>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -18,7 +23,7 @@
 const int src_width = 700;
 const int src_height = 700;
 
-Camera camera(glm::vec3(0.0, 3.0, -5.0), glm::vec3(0.0, 0.5, 0.0), 90.0);
+Camera camera(glm::vec3(-2.0, 58.0, -5.0), glm::vec3(0.0, 0.5, 0.0), 90.0);
 
 float lastX = src_width / 2.0f;
 float lastY = src_height / 2.0f;
@@ -31,8 +36,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 std::vector<Vertex> make_grid(int length, float density_per_cell);
-
-
+void draw_water(Shader water_shader,Object plane,glm::mat4 view,glm::mat4 perspective,glm::vec3 materialColour, glm::vec3 light_pos, double now );
+void setup_water(Shader water_shader,float ambient, float diffuse, float specular);
+void loadCubemapFace(const char * path, const GLenum& targetFace);
 
 #ifndef NDEBUG
 void APIENTRY glDebugOutput(GLenum source,
@@ -83,7 +89,6 @@ void APIENTRY glDebugOutput(GLenum source,
 }
 #endif
 
-
 int main(int argc, char* argv[])
 {
 	//Create the OpenGL context 
@@ -122,11 +127,10 @@ int main(int argc, char* argv[])
 	glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
 	glEnable(GL_DEPTH_TEST);
 
-	
 	//comment to use texture
 	//glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 	//comment to stop using the mouse to move
-	// glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	GLint maxTessLevel;
 	glGetIntegerv(GL_MAX_TESS_GEN_LEVEL,&maxTessLevel);
@@ -146,12 +150,51 @@ int main(int argc, char* argv[])
 #endif
 	
 	Terrain terrain = Terrain();
-	Shader shader(PATH_TO_SHADER "/vertSrc.vs", PATH_TO_SHADER "/fragSrc.fs");
+	Shader water_shader(PATH_TO_SHADER "/water/water.vs", PATH_TO_SHADER "/simple.fs");
+	Shader simple_shader(PATH_TO_SHADER "/simple.vs", PATH_TO_SHADER "/simple.fs");
+	Shader skybox_shader(PATH_TO_SHADER "/sky_box/sky.vs", PATH_TO_SHADER "/sky_box/sky.fs");
 
 	int length = 10;
 	float density_per_cell = 4.0;
 	Object plane = Object();
-	plane.makeObject(make_grid(length,density_per_cell),length*length*6*density_per_cell*density_per_cell,shader);
+	plane.makeObject(make_grid(length,density_per_cell),length*length*6*density_per_cell*density_per_cell,water_shader);
+	plane.model = glm::translate(plane.model, glm::vec3(0.0,55,0.0));
+
+	Object skybox(PATH_TO_OBJECTS "/cube.obj");
+	skybox.makeObject(skybox_shader);
+
+	Object sphere(PATH_TO_OBJECTS "/sphere_smooth.obj");
+	sphere.makeObject(simple_shader);
+	sphere.model = glm::translate(sphere.model, glm::vec3(4.0,55,0.0));
+
+	//Create the cubemap texture
+	GLuint sky_texture;
+	glGenTextures(1, &sky_texture);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, sky_texture);
+
+	// texture parameters
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);	
+
+	//This is the image you will use as your skybox
+	std::string pathToCubeMap = PATH_TO_TEXTURE "/sky_box/";
+
+	std::map<std::string, GLenum> facesToLoad = { 
+		{pathToCubeMap + "right.png",GL_TEXTURE_CUBE_MAP_POSITIVE_X},
+		{pathToCubeMap + "top.png",GL_TEXTURE_CUBE_MAP_POSITIVE_Y},
+		{pathToCubeMap + "front.png",GL_TEXTURE_CUBE_MAP_POSITIVE_Z},
+		{pathToCubeMap + "left.png",GL_TEXTURE_CUBE_MAP_NEGATIVE_X},
+		{pathToCubeMap + "bottom.png",GL_TEXTURE_CUBE_MAP_NEGATIVE_Y},
+		{pathToCubeMap + "back.png",GL_TEXTURE_CUBE_MAP_NEGATIVE_Z},
+	};
+	//load the six faces, you need to complete the function
+	for (std::pair<std::string, GLenum> pair : facesToLoad) {
+		loadCubemapFace(pair.first.c_str(), pair.second);
+	}
 
 	double prev = 0;
 	int deltaFrame = 0;
@@ -171,22 +214,16 @@ int main(int argc, char* argv[])
 	glm::mat4 view = camera.GetViewMatrix();
 	glm::mat4 perspective = camera.GetProjectionMatrix();
 
-	float ambient = 0.4;
-	float diffuse = 0.5;
-	float specular = 0.8;
+	float ambient = 0.1;
+	float diffuse = 0.8;
+	float specular = 1.0;
 
-	glm::vec3 light_pos = glm::vec3(5.0, 2.0, 5);
+	glm::vec3 light_pos = glm::vec3(5.0, 59.0, 5);
 	glm::vec3 materialColour = glm::vec3(0.,0.,0.5);	
 
 	//Rendering
-	shader.use();
-	shader.setFloat("shininess", 22.0f);
-	shader.setFloat("light.ambient_strength", ambient);
-	shader.setFloat("light.diffuse_strength", diffuse);
-	shader.setFloat("light.specular_strength", specular);
-	shader.setFloat("light.constant", 1.0);
-	shader.setFloat("light.linear", 0.14);
-	shader.setFloat("light.quadratic", 0.07);
+	setup_water(water_shader,ambient,diffuse,specular);
+	setup_water(simple_shader,ambient,diffuse,specular);
 	
 	glfwSwapInterval(1);
 	while (!glfwWindowShouldClose(window)) {
@@ -197,19 +234,25 @@ int main(int argc, char* argv[])
 		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		shader.use();
-		shader.setMatrix4("M", plane.model);
-		shader.setMatrix4("itM", glm::inverseTranspose(plane.model));
-		shader.setVector3f("materialColour", materialColour);
-		plane.draw();
-		shader.setMatrix4("V", view);
-		shader.setMatrix4("P", perspective);
-		shader.setVector3f("u_view_pos", camera.Position);
+		
+		//Draw the cubemap
+		draw_water( water_shader,plane,view,perspective,materialColour,light_pos, now );
+		terrain.Use(camera,src_width,src_height);
 
-		auto delta = light_pos + glm::vec3(0.0,0.0,2 * std::sin(now));
-		shader.setVector3f("light.light_pos", delta);
-		shader.setFloat("time",now);
-		// terrain.Use(camera,src_width,src_height);
+		//Use the shader for the cube map
+
+		glDepthFunc(GL_LEQUAL);
+		skybox_shader.use();
+		//Set the relevant uniform
+		skybox_shader.setMatrix4("V", view);
+		skybox_shader.setMatrix4("P", perspective);
+		skybox_shader.setInteger("cubemapTexture", 0);
+		
+		//Activate and bind the texture for the cubemap
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP,sky_texture);
+		skybox.draw();
+		glDepthFunc(GL_LESS);
 
 		fps(now);
 		glfwSwapBuffers(window);
@@ -232,6 +275,35 @@ void processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)		camera.ProcessKeyboardRotation(-1, 0.0, 1);
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)		    camera.ProcessKeyboardRotation(0.0, 1.0, 1);
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)		camera.ProcessKeyboardRotation(0.0, -1.0, 1);
+}
+
+
+void setup_water(Shader water_shader,float ambient, float diffuse, float specular){
+	water_shader.use();
+	water_shader.setFloat("shininess", 22.0f);
+	water_shader.setFloat("light.ambient_strength", ambient);
+	water_shader.setFloat("light.diffuse_strength", diffuse);
+	water_shader.setFloat("light.specular_strength", specular);
+	water_shader.setFloat("light.constant", 1.0);
+	water_shader.setFloat("light.linear", 0.14);
+	water_shader.setFloat("light.quadratic", 0.07);
+}
+
+void draw_water(Shader water_shader,Object plane,glm::mat4 view,glm::mat4 perspective,glm::vec3 materialColour, glm::vec3 light_pos, double now ){
+	water_shader.use();
+	water_shader.setMatrix4("M", plane.model);
+	water_shader.setMatrix4("itM", glm::inverseTranspose(plane.model));
+	water_shader.setVector3f("materialColour", materialColour);
+	plane.draw();
+	water_shader.setMatrix4("V", view);
+	water_shader.setMatrix4("P", perspective);
+	water_shader.setVector3f("u_view_pos", camera.Position);
+
+	// auto delta = light_pos + glm::vec3(0.0,0.0,2 * std::sin(now));
+	water_shader.setVector3f("light.light_pos", light_pos);
+	water_shader.setFloat("time",now);
+
+
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -308,4 +380,22 @@ std::vector<Vertex> make_grid(int length, float density_per_cell){
 		}
 	}
 	return vertices;
+}
+
+void loadCubemapFace(const char * path, const GLenum& targetFace){
+	int imWidth, imHeight, imNrChannels;
+	//Load the image using stbi_load
+	unsigned char* data = stbi_load(path, &imWidth, &imHeight, &imNrChannels, 0);
+	if (data)
+	{
+		//Send the image to the the buffer
+		glTexImage2D(targetFace, 0, GL_RGB, imWidth, imHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	}
+	else {
+		std::cout << "Failed to Load texture" << std::endl;
+		const char* reason = stbi_failure_reason();
+		std::cout << reason << std::endl;
+	}
+	//Don't forget to free the memory
+	stbi_image_free(data);
 }

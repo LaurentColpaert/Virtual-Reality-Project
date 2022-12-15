@@ -1,4 +1,4 @@
-# Install script for directory: /home/laurent/Documents/Polytech/MA2/Virtual Reality/project/src
+# Install script for directory: /home/laurent/Documents/Polytech/MA2/Virtual_Reality/project/src
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

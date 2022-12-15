@@ -6,9 +6,6 @@
 
 #include <iostream>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 #include "./tess_shader.h"
 
 const unsigned int NUM_PATCH_PTS = 4;
@@ -89,7 +86,7 @@ public:
         tessHeightMapShader.use();
 
         // view/projection transformations
-        tessHeightMapShader.setMatrix4("projection", glm::perspective(glm::radians(camera.Zoom), (float)width / (float)height, 0.1f, 100000.0f));
+        tessHeightMapShader.setMatrix4("projection",camera.GetProjectionMatrix());
         tessHeightMapShader.setMatrix4("view", camera.GetViewMatrix());
         tessHeightMapShader.setMatrix4("model", glm::mat4(1.0f));
 
