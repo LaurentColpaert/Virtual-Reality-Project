@@ -22,15 +22,16 @@
 #include "./skybox.h"
 #include "./water.h"
 #include "./debug.h"
+#include "./callbacks.h"
 
 const int src_width = 700;
 const int src_height = 700;
-
-Camera camera(glm::vec3(-2.0, 58.0, -5.0), glm::vec3(0.0, 0.5, 0.0), 90.0);
-
 float lastX = src_width / 2.0f;
 float lastY = src_height / 2.0f;
 bool firstMouse = true;
+
+Camera* camera = new Camera(glm::vec3(-2.0, 58.0, -5.0), glm::vec3(0.0, 0.5, 0.0), 90.0);
+Callbacks callbacks  = Callbacks(camera);
 
 void processInput(GLFWwindow* window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -125,7 +126,7 @@ int main(int argc, char* argv[])
 	
 	glfwSwapInterval(1);
 	while (!glfwWindowShouldClose(window)) {
-		processInput(window);
+		callbacks.processInput(window);
 		glfwPollEvents();
 		double now = glfwGetTime();
 		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
@@ -133,9 +134,9 @@ int main(int argc, char* argv[])
 
 	
 		//Draw the elements
-		water.draw(camera,materialColour,light_pos, now );
-		terrain.draw(camera,src_width,src_height);
-		skybox.draw(camera);
+		water.draw(*camera,materialColour,light_pos, now );
+		terrain.draw(*camera,src_width,src_height);
+		skybox.draw(*camera);
 		
 		fps(now);
 		glfwSwapBuffers(window);
@@ -148,44 +149,32 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-void processInput(GLFWwindow* window) {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)		glfwSetWindowShouldClose(window, true);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)		    camera.ProcessKeyboardMovement(LEFT, 0.1);
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)		    camera.ProcessKeyboardMovement(RIGHT, 0.1);
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)		    camera.ProcessKeyboardMovement(FORWARD, 0.1);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)		    camera.ProcessKeyboardMovement(BACKWARD, 0.1);
-	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)		camera.ProcessKeyboardRotation(1, 0.0, 1);
-	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)		camera.ProcessKeyboardRotation(-1, 0.0, 1);
-	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)		    camera.ProcessKeyboardRotation(0.0, 1.0, 1);
-	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)		camera.ProcessKeyboardRotation(0.0, -1.0, 1);
-}
 
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-	glViewport(0,0,width,width);
-	camera.setRatio(width,height);
-}
+ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+    {
+        glViewport(0,0,width,width);
+        camera->setRatio(width,height);
+    }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
 
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
-    lastX = xpos;
-    lastY = ypos;
+	lastX = xpos;
+	lastY = ypos;
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
+	camera->ProcessMouseMovement(xoffset, yoffset);
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    camera.ProcessMouseScroll(static_cast<float>(yoffset));
+	camera->ProcessMouseScroll(static_cast<float>(yoffset));
 }
