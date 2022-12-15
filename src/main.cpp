@@ -217,10 +217,8 @@ void processInput(GLFWwindow* window) {
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-	if (width < height)
 	glViewport(0,0,width,width);
-	else
-	glViewport((width - height)/2,0,height,height);
+	camera.setRatio(width,height);
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)

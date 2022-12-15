@@ -61,6 +61,10 @@ public:
         this->updateCameraVectors();
     }
 
+    void setRatio(int width,int height){
+        ratio = width / height;
+    }
+
     // returns the view matrix calculated using Euler Angles and the LookAt Matrix
     glm::mat4 GetViewMatrix()
     {
