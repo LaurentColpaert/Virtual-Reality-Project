@@ -1,7 +1,7 @@
 /**
 * @brief This header file defines the callbacks class.
 *
-* @author Adela Surca & Laurent Colpaert.
+* @author Adela Surca & Laurent Colpaert
 *
 * @project OpenGL project
 *

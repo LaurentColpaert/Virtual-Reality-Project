@@ -1,3 +1,11 @@
+/**
+* @brief This header file defines the object class. Based on the assistant of the INFO-H-502 at the ULB
+*
+* @author Adela Surca & Laurent Colpaert
+*
+* @project OpenGL project
+*
+**/
 #ifndef OBJECT_H
 #define OBJECT_H
 
@@ -7,20 +15,23 @@
 #include <sstream>
 #include <vector>
 
-
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
 #include <glm/glm.hpp>
 #include<glm/gtc/matrix_transform.hpp>
 
 
+/**The struct that defines a vertex**/
 struct Vertex {
 	glm::vec3 Position;
 	glm::vec2 Texture;
 	glm::vec3 Normal;
 };
 
+/**
+ * @brief Class that parse ´.obj´ file and associate the mesh extracted to buffers and shaders. 
+ * And allow the rendering of the object in the OpenGL pipeline
+**/
 class Object
 {
 public:
@@ -36,17 +47,11 @@ public:
 
 	glm::mat4 model = glm::mat4(1.0);
 
-	Object(){
-		//empty object
-	}
+	/** Creates an empty object without reading a ´.obj´ file. Used for hand-made mesh**/
+	Object(){}
+
+	/** Read an ´.obj´ file and parse it correctly to create an array of vertex**/
 	Object(const char* path) {
-
-		// Read the file defined by the path argument 
-		// open the .obj file into a text editor and see how the data are organized
-		// you will see line starting by v, vt, vn and f --> what are these ?
-		// Then parse it to extract the data you need
-		// keep track of the number of vertices you need
-
 		std::ifstream infile(path);
 		std::cout << path << std::endl;
 		std::string line;
@@ -133,20 +138,14 @@ public:
 		std::cout << "Load model with " << vertices.size() << std::endl;
 
 		infile.close();
-
 		numVertices = vertices.size();
 	}
 
 
-
+	/** Parse the array of vertices into an OpenGL readable format
+	 *  and put them in the correct buffer. Link the shader and the texture if used
+	**/
 	void makeObject(Shader shader, bool texture = true) {
-		//Create the VAO and VBO
-		//Put your data into your VBO
-		//Define VBO and VAO as active buffer and active vertex array
-		//Use the VAO to specify how your data should be read by your shader (glVertexAttribPointer and co)
-		//Sometimes your shader will not use texture or normal attribute
-		//you can use the boolean defined above to not specify these attribute 
-		//desactive the buffer and delete the datas when your done
 		float* data = new float[8 * numVertices];
 		for (int i = 0; i < numVertices; i++) {
 			Vertex v = vertices.at(i);
@@ -161,7 +160,6 @@ public:
 			data[i * 8 + 6] = v.Normal.y;
 			data[i * 8 + 7] = v.Normal.z;
 		}
-
 		glGenVertexArrays(1, &VAO);
 		glGenBuffers(1, &VBO);
 
@@ -174,14 +172,11 @@ public:
 		glEnableVertexAttribArray(att_pos);
 		glVertexAttribPointer(att_pos, 3, GL_FLOAT, false, 8 * sizeof(float), (void*)0);
 
-		
 		if (texture) {
 			auto att_tex = glGetAttribLocation(shader.ID, "tex_coord");
 			glEnableVertexAttribArray(att_tex);
 			glVertexAttribPointer(att_tex, 2, GL_FLOAT, false, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-			
 		}
-		
 		auto att_col = glGetAttribLocation(shader.ID, "normal");
 		glEnableVertexAttribArray(att_col);
 		glVertexAttribPointer(att_col, 3, GL_FLOAT, false, 8 * sizeof(float), (void*)(5 * sizeof(float)));
@@ -192,14 +187,11 @@ public:
 		delete[] data;
 	}
 
+	/** Parse the array of vertices that was created by hand into an OpenGL readable format
+	 *  and put them in the correct buffer. Link the shader and the texture if used
+	**/
 	void makeObject(std::vector<Vertex> vertices, int numVertices, Shader shader, bool texture = true) {
-		//Create the VAO and VBO
-		//Put your data into your VBO
-		//Define VBO and VAO as active buffer and active vertex array
-		//Use the VAO to specify how your data should be read by your shader (glVertexAttribPointer and co)
-		//Sometimes your shader will not use texture or normal attribute
-		//you can use the boolean defined above to not specify these attribute 
-		//desactive the buffer and delete the datas when your done
+		
 		this->numVertices = numVertices;
 		printf("Load model with %d \n", numVertices);
 		float* data = new float[8 * numVertices];
@@ -227,15 +219,12 @@ public:
 		auto att_pos = glGetAttribLocation(shader.ID, "position");
 		glEnableVertexAttribArray(att_pos);
 		glVertexAttribPointer(att_pos, 3, GL_FLOAT, false, 8 * sizeof(float), (void*)0);
-
 		
 		if (texture) {
 			auto att_tex = glGetAttribLocation(shader.ID, "tex_coord");
 			glEnableVertexAttribArray(att_tex);
-			glVertexAttribPointer(att_tex, 2, GL_FLOAT, false, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-			
+			glVertexAttribPointer(att_tex, 2, GL_FLOAT, false, 8 * sizeof(float), (void*)(3 * sizeof(float)));	
 		}
-		
 		auto att_col = glGetAttribLocation(shader.ID, "normal");
 		glEnableVertexAttribArray(att_col);
 		glVertexAttribPointer(att_col, 3, GL_FLOAT, false, 8 * sizeof(float), (void*)(5 * sizeof(float)));
@@ -246,10 +235,8 @@ public:
 	}
 
 
-
+	/**	Bind your vertex arrays and call glDrawArrays **/
 	void draw() {
-
-		//bind your vertex arrays and call glDrawArrays
 		glBindVertexArray(this->VAO);
 		glDrawArrays(GL_TRIANGLES, 0, numVertices);
 	}

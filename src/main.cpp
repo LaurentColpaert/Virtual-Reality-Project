@@ -1,3 +1,11 @@
+/**
+* @brief This main file defines how to launch the project
+*
+* @author Adela Surca & Laurent Colpaert
+*
+* @project OpenGL project
+*
+**/
 #include<iostream>
 #include <map>
 #include <glad/glad.h>
@@ -55,7 +63,6 @@ int main(int argc, char* argv[])
 		glfwTerminate();
 		throw std::runtime_error("Failed to create GLFW window\n");
 	}
-
 	glfwMakeContextCurrent(window);
 	
 	//load openGL function
