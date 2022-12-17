@@ -43,6 +43,12 @@ public:
         }  
     }
 
+    void set(){
+        glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP,sky_texture);
+		skybox_shader.setInteger("cubemapTexture", 0);
+    }
+    
     void draw(Camera camera){
         /**
          * The GL-LEQUAL and GL_LESS is use to make sure that it render the skybox eventhough it's far away from the scene  
@@ -51,11 +57,10 @@ public:
 		skybox_shader.use();
 		skybox_shader.setMatrix4("V", camera.GetViewMatrix());
 		skybox_shader.setMatrix4("P", camera.GetProjectionMatrix());
-		skybox_shader.setInteger("cubemapTexture", 0);
 		
 		//Activate and bind the texture for the cubemap
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP,sky_texture);
+		skybox_shader.setInteger("cubemapTexture", 0);
+		
 		skybox_cube.draw();
 		glDepthFunc(GL_LESS);
     }

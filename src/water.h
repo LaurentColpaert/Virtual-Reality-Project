@@ -21,13 +21,13 @@ public:
 
     void setup_water_shader(float ambient, float diffuse, float specular){
         water_shader.use();
-        water_shader.setFloat("shininess", 22.0f);
+        water_shader.setFloat("shininess", 40.0f);
         water_shader.setFloat("light.ambient_strength", ambient);
         water_shader.setFloat("light.diffuse_strength", diffuse);
         water_shader.setFloat("light.specular_strength", specular);
-        water_shader.setFloat("light.constant", 1.0);
-        water_shader.setFloat("light.linear", 0.14);
-        water_shader.setFloat("light.quadratic", 0.07);
+        water_shader.setFloat("light.constant", 1.4);
+        water_shader.setFloat("light.linear", 0.74);
+        water_shader.setFloat("light.quadratic", 0.27);
     }
 
 

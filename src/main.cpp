@@ -39,7 +39,7 @@ float lastX = src_width / 2.0f;
 float lastY = src_height / 2.0f;
 bool firstMouse = true;
 
-Camera* camera = new Camera(glm::vec3(-2.0, 58.0, -5.0), glm::vec3(0.0, 0.5, 0.0), 90.0);
+Camera* camera = new Camera(glm::vec3(-2.0, 56.0, -5.0), glm::vec3(0.0, 0.5, 0.0), 90.0);
 Callbacks callbacks  = Callbacks(camera);
 
 int main(int argc, char* argv[])
@@ -88,14 +88,14 @@ int main(int argc, char* argv[])
 	Shader simple_shader(PATH_TO_SHADER "/simple.vs", PATH_TO_SHADER "/simple.fs");
 	Terrain terrain = Terrain();
 	Skybox skybox = Skybox();
-	Water water = Water(10,4.0, glm::vec3(0.0,55.0,0.0));	
+	Water water = Water(50,4.0, glm::vec3(0.0,50.0,0.0));	
 
-	float ambient = 0.1;
-	float diffuse = 0.8;
+	float ambient = 0.2;
+	float diffuse = 0.6;
 	float specular = 1.0;
 
-	glm::vec3 light_pos = glm::vec3(5.0, 59.0, 5);
-	glm::vec3 materialColour = glm::vec3(0.,0.,0.5);	
+	glm::vec3 light_pos = glm::vec3(12.0, 52.0, 12.0);
+	glm::vec3 materialColour = glm::vec3(0.17,0.68,0.89);	
 
 	water.setup_water_shader(ambient,diffuse,specular);
 	
@@ -108,8 +108,11 @@ int main(int argc, char* argv[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		//Draw the elements
-		water.draw(*camera,materialColour,light_pos, now );
+
 		terrain.draw(*camera,src_width,src_height);
+
+		skybox.set();
+		water.draw(*camera,materialColour,light_pos,now);
 		skybox.draw(*camera);
 		
 		fps.display(now);
