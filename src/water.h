@@ -13,9 +13,10 @@ public:
     Object plane;
     Shader water_shader = Shader(PATH_TO_SHADER "/water/water.vs", PATH_TO_SHADER "/water/water.fs"); 
 
-    Water(int length,float density_per_cell, glm::vec3 translate_vector){
+    Water(int length,float density_per_cell, float height){
         plane = Object();
         plane.makeObject(make_grid(length,density_per_cell),length*length*6*density_per_cell*density_per_cell,water_shader);
+        glm::vec3 translate_vector = glm::vec3(-length/2,height, -length/2);
         plane.model = glm::translate(plane.model, translate_vector);
     }
 

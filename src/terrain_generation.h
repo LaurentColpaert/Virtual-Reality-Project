@@ -14,7 +14,9 @@ class Terrain{
 public:
     TShader tessHeightMapShader = TShader(PATH_TO_SHADER "/terrain_generation/height.vs",PATH_TO_SHADER "/terrain_generation/height.fs",nullptr,PATH_TO_SHADER "/terrain_generation/height.tcs", PATH_TO_SHADER "/terrain_generation/height.tes");
     unsigned int terrainVAO, terrainVBO;
-    std::vector<float> vertices;   
+    std::vector<float> vertices;  
+    int terrain_width = 0;
+    int terrain_height = 0; 
     unsigned rez = 20;   
 
     Terrain(){
@@ -23,12 +25,7 @@ public:
         glGenTextures(1, &texture);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-        // set the texture wrapping parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        // set texture filtering parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        
         // load image, create texture and generate mipmaps
         int width, height, nrChannels;
         // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
@@ -46,6 +43,8 @@ public:
             std::cout << "Failed to load texture" << std::endl;
         }
         stbi_image_free(data);
+        terrain_width = width;
+        terrain_height = height;
 
         // vertex generation
         for(unsigned i = 0; i <= rez-1; i++)

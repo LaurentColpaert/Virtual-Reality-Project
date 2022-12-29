@@ -52,7 +52,7 @@ void main()
     vec4 p = (p1 - p0) * v + p0;
 
     // displace point along normal
-    p += normal * Height;
+    p += normal * Height * 1.5;
 
     // ----------------------------------------------------------------------
     // output patch point position in clip space

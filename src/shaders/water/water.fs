@@ -24,12 +24,15 @@ uniform vec3 materialColour;
 uniform samplerCube cubemapSampler;
 
 
+float far = 1000;
+float near = 0.01; 
 float specularCalculation(vec3 N, vec3 L, vec3 V ){
     vec3 R = reflect (-L,N);
     float cosTheta = dot(R , V);
     float spec = pow(max(cosTheta,0.0), 32.0);
     return light.specular_strength * spec;
 }
+
 
 void main() {
     vec3 N = normalize(v_normal);
@@ -41,5 +44,6 @@ void main() {
     float attenuation = pow((light.constant + light.linear * distance + light.quadratic * distance * distance),-1);
     float light = light.ambient_strength + attenuation * (diffuse + specular);
     vec3 R = reflect(-V,N);
+
     FragColor = vec4(materialColour * vec3(light) * texture(cubemapSampler,R).xyz, 1.0);
 }
