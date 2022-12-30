@@ -25,6 +25,7 @@
 #include "./terrain_generation.h"
 #include "./skybox.h"
 #include "./water.h"
+// #include "./physic.h"
 #include "./utils/debug.h"
 #include "./utils/callbacks.h"
 #include "./utils/fps.h"
@@ -103,13 +104,21 @@ int main(int argc, char* argv[])
 	spirit.makeObject(simple_texture_shader,true);
 	spirit.model = glm::translate(spirit.model, glm::vec3(0.0,50.0,0.0));
 
+	Object sphere = Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
+	sphere.makeObject(simple_shader);
+	sphere.model = glm::translate(sphere.model, glm::vec3(10.0,50.0,10.0));
+
+	Object plane_test = Object(PATH_TO_OBJECTS "/plane.obj");
+	plane_test.makeObject(simple_shader);
+	plane_test.model = glm::translate(plane_test.model, glm::vec3(10.0,35.0,10.0));
+
+	// Physic physic = Physic(&plane_test);
+	// physic.addObject(&sphere);
 
 	GLuint spirit_texture;
 	glGenTextures(1, &spirit_texture);
 	glActiveTexture(GL_TEXTURE0+1);
 	glBindTexture(GL_TEXTURE_2D, spirit_texture);
-	
-
 
 	stbi_set_flip_vertically_on_load(true);
 	int imWidth, imHeight, imNrChannels;
@@ -148,6 +157,7 @@ int main(int argc, char* argv[])
 	
 	glfwSwapInterval(1);
 	while (!glfwWindowShouldClose(window)) {
+		// physic.animate();
 		callbacks.processInput(window);
 		glfwPollEvents();
 		double now = glfwGetTime();
@@ -172,8 +182,9 @@ int main(int argc, char* argv[])
 		fps.display(now);
 		glfwSwapBuffers(window);
 	}
-	terrain.destroy();
 
+	terrain.destroy();
+	// physic.destroy();
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	return 0;

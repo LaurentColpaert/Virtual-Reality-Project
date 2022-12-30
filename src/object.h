@@ -46,6 +46,7 @@ public:
 	GLuint VBO, VAO;
 
 	glm::mat4 model = glm::mat4(1.0);
+	glm::vec3 initial_position = glm::vec3(0.0);
 
 	/** Creates an empty object without reading a ´.obj´ file. Used for hand-made mesh**/
 	Object(){}
