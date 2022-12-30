@@ -102,15 +102,15 @@ int main(int argc, char* argv[])
 
 	Object spirit = Object(PATH_TO_OBJECTS "/spirit.obj");
 	spirit.makeObject(simple_texture_shader,true);
-	spirit.model = glm::translate(spirit.model, glm::vec3(0.0,50.0,0.0));
+	spirit.transform.model = glm::translate(spirit.transform.model, glm::vec3(0.0,50.0,0.0));
 
 	Object sphere = Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 	sphere.makeObject(simple_shader);
-	sphere.model = glm::translate(sphere.model, glm::vec3(10.0,50.0,10.0));
+	sphere.transform.model = glm::translate(sphere.transform.model, glm::vec3(10.0,50.0,10.0));
 
 	Object plane_test = Object(PATH_TO_OBJECTS "/plane.obj");
 	plane_test.makeObject(simple_shader);
-	plane_test.model = glm::translate(plane_test.model, glm::vec3(10.0,35.0,10.0));
+	plane_test.transform.model = glm::translate(plane_test.transform.model, glm::vec3(10.0,35.0,10.0));
 
 	// Physic physic = Physic(&plane_test);
 	// physic.addObject(&sphere);
@@ -173,8 +173,8 @@ int main(int argc, char* argv[])
 
 		simple_texture_shader.use();
 		simple_texture_shader.setInteger("ourTexture",1);
-		simple_texture_shader.setMatrix4("M", spirit.model);
-		simple_texture_shader.setMatrix4("itM", glm::inverseTranspose(spirit.model));
+		simple_texture_shader.setMatrix4("M", spirit.transform.model);
+		simple_texture_shader.setMatrix4("itM", glm::inverseTranspose(spirit.transform.model));
 		simple_texture_shader.setMatrix4("V", camera->GetViewMatrix());
 		simple_texture_shader.setMatrix4("P", camera->GetProjectionMatrix());
 		spirit.draw();

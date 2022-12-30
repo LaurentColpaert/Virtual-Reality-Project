@@ -91,21 +91,33 @@ public:
     void animate(){
         dynamics_world->stepSimulation(1.f / 60.f, 1);
 
+
         for (int j = dynamics_world->getNumCollisionObjects() - 1; j >= 0; j--){
-            btCollisionObject* obj = dynamics_world->getCollisionObjectArray()[j];
-            btRigidBody* rigid = btRigidBody::upcast(obj);
-            btTransform trans;
-            if (rigid && rigid->getMotionState()) rigid->getMotionState()->getWorldTransform(trans);
-            else trans = obj->getWorldTransform();
+            auto physicsBodyTransform = physicsBody->mRigidBody->getWorldTransform();
+            auto gameObjectTransform = physicsBody->mGameObject.mTransform;
+
+            gameObjectTransform->mTranslation = Utils::TransformConversions::btVector32glmVec3(physicsBodyTransform.getOrigin());
+            gameObjectTransform->mRotation = Utils::TransformConversions::btQuaternion2glmQuat(physicsBodyTransform.getRotation());
+
+            btScalar transform[16];
+            physicsBodyTransform.getOpenGLMatrix(transform);
+            glm::mat4 translateRotateMtx = Utils::TransformConversions::btScalar2glmMat4(transform);
+            glm::mat4 scaleMtx = glm::scale(glm::mat4(1), gameObjectTransform->mScale);
+            gameObjectTransform->mModelMatrix = translateRotateMtx * scaleMtx;
+                // btCollisionObject* obj = dynamics_world->getCollisionObjectArray()[j];
+            // btRigidBody* rigid = btRigidBody::upcast(obj);
+            // btTransform trans;
+            // if (rigid && rigid->getMotionState()) rigid->getMotionState()->getWorldTransform(trans);
+            // else trans = obj->getWorldTransform();
             
 
-            Object* glObj = object_array[j];
-            if (glObj != NULL) {
-                btScalar roll, pitch, yaw;
-                trans.getRotation().getEulerZYX(yaw,pitch,roll);
-                glm::vec3 translation = glm::vec3(float(trans.getOrigin().getX()), float(trans.getOrigin().getY()), float(trans.getOrigin().getZ()));
-                glObj->setPosRot(translation, glm::vec3(roll, pitch, yaw));
-            }
+            // Object* glObj = object_array[j];
+            // if (glObj != NULL) {
+            //     btScalar roll, pitch, yaw;
+            //     trans.getRotation().getEulerZYX(yaw,pitch,roll);
+            //     glm::vec3 translation = glm::vec3(float(trans.getOrigin().getX()), float(trans.getOrigin().getY()), float(trans.getOrigin().getZ()));
+            //     glObj->setPosRot(translation, glm::vec3(roll, pitch, yaw));
+            // }
         }
     }
     void destroy(){

@@ -20,6 +20,8 @@
 #include <glm/glm.hpp>
 #include<glm/gtc/matrix_transform.hpp>
 
+#include "./utils/transform.h"
+
 
 /**The struct that defines a vertex**/
 struct Vertex {
@@ -45,14 +47,18 @@ public:
 
 	GLuint VBO, VAO;
 
-	glm::mat4 model = glm::mat4(1.0);
+	Transform transform;
 	glm::vec3 initial_position = glm::vec3(0.0);
 
 	/** Creates an empty object without reading a ´.obj´ file. Used for hand-made mesh**/
-	Object(){}
+	Object(){
+		transform = Transform();
+	}
 
 	/** Read an ´.obj´ file and parse it correctly to create an array of vertex**/
 	Object(const char* path) {
+		transform = Transform();
+
 		std::ifstream infile(path);
 		std::cout << path << std::endl;
 		std::string line;

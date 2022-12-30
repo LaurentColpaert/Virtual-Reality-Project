@@ -17,7 +17,7 @@ public:
         plane = Object();
         plane.makeObject(make_grid(length,density_per_cell),length*length*6*density_per_cell*density_per_cell,water_shader);
         glm::vec3 translate_vector = glm::vec3(-length/2,height, -length/2);
-        plane.model = glm::translate(plane.model, translate_vector);
+        plane.transform.model = glm::translate(plane.transform.model, translate_vector);
     }
 
     void setup_water_shader(float ambient, float diffuse, float specular){
@@ -34,8 +34,8 @@ public:
 
     void draw(Camera camera, glm::vec3 materialColour, glm::vec3 light_pos, double now ){
         water_shader.use();
-        water_shader.setMatrix4("M", plane.model);
-        water_shader.setMatrix4("itM", glm::inverseTranspose(plane.model));
+        water_shader.setMatrix4("M", plane.transform.model);
+        water_shader.setMatrix4("itM", glm::inverseTranspose(plane.transform.model));
         water_shader.setVector3f("materialColour", materialColour);
     	water_shader.setMatrix4("V", camera.GetViewMatrix());
 		water_shader.setMatrix4("P", camera.GetProjectionMatrix());
@@ -91,6 +91,5 @@ private:
         }
         return vertices;
     }
-
 };
 #endif
