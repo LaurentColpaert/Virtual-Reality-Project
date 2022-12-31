@@ -11,6 +11,6 @@ add_compile_definitions(PATH_TO_TEXTURE="${CMAKE_CURRENT_SOURCE_DIR}/assets/text
 #Specify that you want to generate an executable with a certain name using a set of sources
 add_executable(${PROJECT_NAME}_exe ${SOURCE_MAIN})
 #Specify which libraries you want to use with your executable
-target_link_libraries(${PROJECT_NAME}_exe PUBLIC OpenGL::GL glfw glad)
+target_link_libraries(${PROJECT_NAME}_exe PUBLIC OpenGL::GL glfw glad BulletDynamics BulletCollision LinearMath)
 
 

@@ -3,6 +3,7 @@
 
 #include <btBulletDynamicsCommon.h>
 #include "object.h"
+#include "utils/transform_conversion.h"
 
 class Physic{
 public:
@@ -21,7 +22,6 @@ public:
 
     Physic(Object *obj){
         initializeEngine();
-        createGround(obj, 100., 100.);
     }
 
     void initializeEngine(){
@@ -34,9 +34,12 @@ public:
         ///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
         solver = new btSequentialImpulseConstraintSolver;
         dynamics_world = new btDiscreteDynamicsWorld(dispatcher, broadphase_interface, solver, collision_configuration);
-        dynamics_world->setGravity(btVector3(0, GRAVITY, 0));
+        
+        float gravity = -25.0f;
+        dynamics_world->setGravity(btVector3(0, gravity, 0));
     }
     
+    /*
     void createGround(Object *obj, float width=50., float depth=50.){
         btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(width), btScalar(0.), btScalar(depth)));
 
@@ -55,9 +58,10 @@ public:
 
         dynamics_world -> addRigidBody(rigid);
     }
+    */
 
     void addObject(Object *obj){
-        btCollisionShape* col_shape = new btSphereShape(btScalar(obj->scale.x));
+        btCollisionShape* col_shape = new btSphereShape(btScalar(0.0));
         collision_array.push_back(col_shape);
         object_array.push_back(obj);
 
@@ -69,42 +73,44 @@ public:
         btVector3 localInertia(0, 0, 0);
         if (mass != 0) col_shape->calculateLocalInertia(mass, localInertia);
 
-        transform.setOrigin(btVector3(obj->initial_position.x, obj->initial_position.y, obj->initial_position.z));
-        
-        // TODO : add a rotation into the objet class
-        float roll = 0; 
-        float pitch = obj->0; 
-        float yaw = obj->0; 
-        float qx = sin(roll/2) * cos(pitch/2) * cos(yaw/2) - cos(roll/2) * sin(pitch/2) * sin(yaw/2);
-        float qy = cos(roll/2) * sin(pitch/2) * cos(yaw/2) + sin(roll/2) * cos(pitch/2) * sin(yaw/2);
-        float qz = cos(roll/2) * cos(pitch/2) * sin(yaw/2) - sin(roll/2) * sin(pitch/2) * cos(yaw/2);
-        float qw = cos(roll/2) * cos(pitch/2) * cos(yaw/2) + sin(roll/2) * sin(pitch/2) * sin(yaw/2);
-        transform.setRotation(btQuaternion(qx,qy,qz,qw)); 
+        transform.setOrigin(btVector3(obj->transform.translation.x, obj->transform.translation.y, obj->transform.translation.z));
+
 
         btDefaultMotionState* motion_state = new btDefaultMotionState(transform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motion_state, col_shape, localInertia);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motion_state, col_shape, btVector3(0,0,0));
         btRigidBody* rigid = new btRigidBody(rbInfo);
 
         dynamics_world->addRigidBody(rigid);
+        obj->rigid = rigid;
     }
 
-    void animate(){
+    void update(){
         dynamics_world->stepSimulation(1.f / 60.f, 1);
 
+        // for (int j = dynamics_world->getNumCollisionObjects() - 1; j >= 0; j--){
+        for( int i = 0; i < object_array.size();i++){
+            Object* object = object_array[i];
+            auto physicsBodyTransform = object->rigid->getWorldTransform();
+            auto gameObjectTransform = object->transform;
 
-        for (int j = dynamics_world->getNumCollisionObjects() - 1; j >= 0; j--){
-            auto physicsBodyTransform = physicsBody->mRigidBody->getWorldTransform();
-            auto gameObjectTransform = physicsBody->mGameObject.mTransform;
+            gameObjectTransform.translation = TransformConversion::btVector32glmVec3(physicsBodyTransform.getOrigin());
+            std::cout << glm::to_string(gameObjectTransform.translation) << std::endl;
+            gameObjectTransform.rotation = TransformConversion::btQuaternion2glmQuat(physicsBodyTransform.getRotation());
 
-            gameObjectTransform->mTranslation = Utils::TransformConversions::btVector32glmVec3(physicsBodyTransform.getOrigin());
-            gameObjectTransform->mRotation = Utils::TransformConversions::btQuaternion2glmQuat(physicsBodyTransform.getRotation());
 
             btScalar transform[16];
             physicsBodyTransform.getOpenGLMatrix(transform);
-            glm::mat4 translateRotateMtx = Utils::TransformConversions::btScalar2glmMat4(transform);
-            glm::mat4 scaleMtx = glm::scale(glm::mat4(1), gameObjectTransform->mScale);
-            gameObjectTransform->mModelMatrix = translateRotateMtx * scaleMtx;
-                // btCollisionObject* obj = dynamics_world->getCollisionObjectArray()[j];
+            glm::mat4 translateRotateMtx = TransformConversion::btScalar2glmMat4(transform);
+            glm::mat4 scaleMtx = glm::scale(glm::mat4(1), gameObjectTransform.scale);
+            gameObjectTransform.model = translateRotateMtx * scaleMtx;
+            
+            //Update the objects
+            object->transform.updateModelMatrix(object->transform.model);
+            object->rigid->getWorldTransform().setRotation(TransformConversion::glmQuat2btQuaternion(object->transform.rotation));
+            object->rigid->getWorldTransform().setOrigin(TransformConversion::glmVec32btVector3(object->transform.getWorldTranslation()));
+            
+
+            // btCollisionObject* obj = dynamics_world->getCollisionObjectArray()[j];
             // btRigidBody* rigid = btRigidBody::upcast(obj);
             // btTransform trans;
             // if (rigid && rigid->getMotionState()) rigid->getMotionState()->getWorldTransform(trans);

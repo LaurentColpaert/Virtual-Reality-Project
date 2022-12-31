@@ -20,6 +20,7 @@
 #include <glm/glm.hpp>
 #include<glm/gtc/matrix_transform.hpp>
 
+#include <btBulletDynamicsCommon.h>
 #include "./utils/transform.h"
 
 
@@ -48,7 +49,7 @@ public:
 	GLuint VBO, VAO;
 
 	Transform transform;
-	glm::vec3 initial_position = glm::vec3(0.0);
+	btRigidBody* rigid;
 
 	/** Creates an empty object without reading a ´.obj´ file. Used for hand-made mesh**/
 	Object(){

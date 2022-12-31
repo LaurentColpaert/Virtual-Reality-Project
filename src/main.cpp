@@ -14,6 +14,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -25,7 +26,7 @@
 #include "./terrain_generation.h"
 #include "./skybox.h"
 #include "./water.h"
-// #include "./physic.h"
+#include "./physic.h"
 #include "./utils/debug.h"
 #include "./utils/callbacks.h"
 #include "./utils/fps.h"
@@ -112,8 +113,8 @@ int main(int argc, char* argv[])
 	plane_test.makeObject(simple_shader);
 	plane_test.transform.model = glm::translate(plane_test.transform.model, glm::vec3(10.0,35.0,10.0));
 
-	// Physic physic = Physic(&plane_test);
-	// physic.addObject(&sphere);
+	Physic physic = Physic(&plane_test);
+	physic.addObject(&sphere);
 
 	GLuint spirit_texture;
 	glGenTextures(1, &spirit_texture);
@@ -157,12 +158,13 @@ int main(int argc, char* argv[])
 	
 	glfwSwapInterval(1);
 	while (!glfwWindowShouldClose(window)) {
-		// physic.animate();
 		callbacks.processInput(window);
 		glfwPollEvents();
 		double now = glfwGetTime();
 		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		physic.update();
 
 		terrain.draw(*camera,src_width,src_height);
 
@@ -178,6 +180,13 @@ int main(int argc, char* argv[])
 		simple_texture_shader.setMatrix4("V", camera->GetViewMatrix());
 		simple_texture_shader.setMatrix4("P", camera->GetProjectionMatrix());
 		spirit.draw();
+
+		simple_shader.use();
+		simple_shader.setMatrix4("M", sphere.transform.model);
+		simple_shader.setMatrix4("itM", glm::inverseTranspose(sphere.transform.model));
+		simple_shader.setMatrix4("V", camera->GetViewMatrix());
+		simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
+		sphere.draw();
 		
 		fps.display(now);
 		glfwSwapBuffers(window);
