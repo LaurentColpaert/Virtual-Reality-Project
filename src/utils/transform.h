@@ -56,6 +56,16 @@ public:
         return glm::vec3(model[3][0], model[3][1], model[3][2]);
     }
 
+    void updateModelMatrix(){
+        glm::mat4 mtx(1);
+        mtx = glm::scale(mtx, scale);
+        glm::mat4 rotation_matrix = glm::toMat4(rotation);
+        mtx = rotation_matrix * mtx;
+        mtx[3][0] += translation.x;
+        mtx[3][1] += translation.y;
+        mtx[3][2] += translation.z;
+        model = mtx;
+    }
     void updateModelMatrix(glm::mat4 starting_matrix){
         glm::mat4 mtx(1);
         mtx = glm::scale(mtx, scale);

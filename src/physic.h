@@ -2,6 +2,9 @@
 #define PHYSIC_H
 
 #include <btBulletDynamicsCommon.h>
+#include "BulletCollision/CollisionShapes/btCollisionShape.h"
+#include "BulletCollision/CollisionShapes/btHeightfieldTerrainShape.h"
+
 #include "object.h"
 #include "utils/transform_conversion.h"
 
@@ -13,14 +16,13 @@ public:
     btBroadphaseInterface* broadphase_interface;
     btSequentialImpulseConstraintSolver* solver;
 
-    btAlignedObjectArray<btCollisionShape*> collision_array;
-    std::vector<Object*> object_array;
+    std::vector<Object*> objects;
 
     float size_x = 0.175;
     float size_y = 1.0;
     float size_z = 0.5;
 
-    Physic(Object *obj){
+    Physic(){
         initializeEngine();
     }
 
@@ -35,35 +37,37 @@ public:
         solver = new btSequentialImpulseConstraintSolver;
         dynamics_world = new btDiscreteDynamicsWorld(dispatcher, broadphase_interface, solver, collision_configuration);
         
-        float gravity = -25.0f;
-        dynamics_world->setGravity(btVector3(0, gravity, 0));
+        dynamics_world->setGravity(btVector3(0, -1, 0));
     }
     
-    /*
-    void createGround(Object *obj, float width=50., float depth=50.){
-        btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(width), btScalar(0.), btScalar(depth)));
+    
+    
+    void addSphere(Object *obj){
+        btCollisionShape* shape = new btSphereShape(1.0f); // radius of 1.0
+        printf("Translation is %f\n", obj->transform.translation.y);
+        // Create a motion state for the sphere
+        btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(obj->transform.translation.x,obj->transform.translation.y, obj->transform.translation.z))); 
 
-        collision_array.push_back(groundShape);
-        object_array.push_back(obj);
+        // Set the mass and inertia of the sphere
+        btScalar mass = 1.0f;
+        btVector3 inertia(0, 0, 0);
+        shape->calculateLocalInertia(mass, inertia);
 
-        btTransform transform;
-        transform.setIdentity();
-        transform.setOrigin(btVector3(0, 0, 0));
+        // Create a rigid body for the sphere
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, shape, inertia);
+        btRigidBody* body = new btRigidBody(rbInfo);
 
-        btScalar mass(0.);
+        body->setLinearVelocity(btVector3(0,0,0));
 
-        btDefaultMotionState* motion_state = new btDefaultMotionState(transform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motion_state, groundShape, localInertia);
-        btRigidBody* rigid = new btRigidBody(rbInfo);
-
-        dynamics_world -> addRigidBody(rigid);
+        body->setUserPointer(obj);
+        dynamics_world->addRigidBody(body);
+        obj->rigid = body;
+        objects.push_back(obj);
     }
-    */
+
 
     void addObject(Object *obj){
-        btCollisionShape* col_shape = new btSphereShape(btScalar(0.0));
-        collision_array.push_back(col_shape);
-        object_array.push_back(obj);
+        btCollisionShape* shape = new btSphereShape(btScalar(0.0));
 
         btTransform transform;
         transform.setIdentity();
@@ -71,89 +75,93 @@ public:
         btScalar mass(1.f);
 
         btVector3 localInertia(0, 0, 0);
-        if (mass != 0) col_shape->calculateLocalInertia(mass, localInertia);
+        if (mass != 0) shape->calculateLocalInertia(mass, localInertia);
 
         transform.setOrigin(btVector3(obj->transform.translation.x, obj->transform.translation.y, obj->transform.translation.z));
 
+        btDefaultMotionState* motion_state = new btDefaultMotionState(transform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motion_state, shape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+
+        body->setUserPointer(obj);
+        dynamics_world->addRigidBody(body);
+        obj->rigid = body;
+        objects.push_back(obj);
+    }
+
+    void addTerrainToWorld(Terrain& terrain){
+        // Create a triangle mesh shape for the terrain
+        btCollisionShape* shape = terrain.shape;
+
+        // Create a motion state for the terrain
+        btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 0, 0)));
+
+        // Create a rigid body for the terrain
+        btRigidBody::btRigidBodyConstructionInfo constructionInfo(0, motionState, shape, btVector3(0, 0, 0));
+        btRigidBody* body = new btRigidBody(constructionInfo);
+
+        // Add the rigid body to the dynamics world
+        dynamics_world->addRigidBody(body);
+
+        Object* obj = terrain.terrain_obj;
+        body->setUserPointer(obj);
+        dynamics_world->addRigidBody(body);
+        obj->rigid = body;
+        objects.push_back(obj);
+    }
+
+    void createGround(Object *obj){
+        btCollisionShape* groundShape = new btBoxShape(btVector3(obj->transform.scale.x, 0, obj->transform.scale.z));
+
+        btTransform transform;
+        transform.setIdentity();
+        transform.setOrigin(btVector3(0, obj->transform.translation.y, 0));
+
+        btScalar mass(0);
 
         btDefaultMotionState* motion_state = new btDefaultMotionState(transform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motion_state, col_shape, btVector3(0,0,0));
-        btRigidBody* rigid = new btRigidBody(rbInfo);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motion_state, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
 
-        dynamics_world->addRigidBody(rigid);
-        obj->rigid = rigid;
+        body->setUserPointer(obj);
+        dynamics_world->addRigidBody(body);
+        obj->rigid = body;
+        objects.push_back(obj);
     }
-
+    
     void update(){
         dynamics_world->stepSimulation(1.f / 60.f, 1);
-
-        // for (int j = dynamics_world->getNumCollisionObjects() - 1; j >= 0; j--){
-        for( int i = 0; i < object_array.size();i++){
-            Object* object = object_array[i];
-            auto physicsBodyTransform = object->rigid->getWorldTransform();
-            auto gameObjectTransform = object->transform;
-
-            gameObjectTransform.translation = TransformConversion::btVector32glmVec3(physicsBodyTransform.getOrigin());
-            std::cout << glm::to_string(gameObjectTransform.translation) << std::endl;
-            gameObjectTransform.rotation = TransformConversion::btQuaternion2glmQuat(physicsBodyTransform.getRotation());
-
-
-            btScalar transform[16];
-            physicsBodyTransform.getOpenGLMatrix(transform);
-            glm::mat4 translateRotateMtx = TransformConversion::btScalar2glmMat4(transform);
-            glm::mat4 scaleMtx = glm::scale(glm::mat4(1), gameObjectTransform.scale);
-            gameObjectTransform.model = translateRotateMtx * scaleMtx;
-            
-            //Update the objects
-            object->transform.updateModelMatrix(object->transform.model);
-            object->rigid->getWorldTransform().setRotation(TransformConversion::glmQuat2btQuaternion(object->transform.rotation));
-            object->rigid->getWorldTransform().setOrigin(TransformConversion::glmVec32btVector3(object->transform.getWorldTranslation()));
-            
-
-            // btCollisionObject* obj = dynamics_world->getCollisionObjectArray()[j];
-            // btRigidBody* rigid = btRigidBody::upcast(obj);
-            // btTransform trans;
-            // if (rigid && rigid->getMotionState()) rigid->getMotionState()->getWorldTransform(trans);
-            // else trans = obj->getWorldTransform();
-            
-
-            // Object* glObj = object_array[j];
-            // if (glObj != NULL) {
-            //     btScalar roll, pitch, yaw;
-            //     trans.getRotation().getEulerZYX(yaw,pitch,roll);
-            //     glm::vec3 translation = glm::vec3(float(trans.getOrigin().getX()), float(trans.getOrigin().getY()), float(trans.getOrigin().getZ()));
-            //     glObj->setPosRot(translation, glm::vec3(roll, pitch, yaw));
-            // }
-        }
-    }
-    void destroy(){
-        for (int i = dynamics_world->getNumCollisionObjects() - 1; i >= 0; i--)
+        for (int i = 0; i < dynamics_world->getNumCollisionObjects(); i++)
         {
+            // Get the collision object
             btCollisionObject* obj = dynamics_world->getCollisionObjectArray()[i];
-            btRigidBody* rigid = btRigidBody::upcast(obj);
 
-            if (rigid && rigid->getMotionState())  delete rigid->getMotionState();
-            
-            dynamics_world->removeCollisionObject(obj);
-            delete obj;
+            // Check if the collision object is a rigid body
+            if (obj->getInternalType() == btCollisionObject::CO_RIGID_BODY)
+            {
+                btRigidBody* body = static_cast<btRigidBody*>(obj);
+
+                // Get the current transform of the rigid body
+                btTransform transform;
+                body->getMotionState()->getWorldTransform(transform);
+
+                // Extract the position, orientation, and scale of the object
+                btVector3 position = transform.getOrigin();
+                btQuaternion orientation = transform.getRotation();
+
+                // Convert the position, orientation, and scale to glm types
+                glm::vec3 gl_position(position.x(), position.y(), position.z());
+                glm::quat gl_orientation(orientation.w(), orientation.x(), orientation.y(), orientation.z());
+
+                // Retrieve the object associated with the rigid body
+                Object* object = static_cast<Object*>(body->getUserPointer());
+
+                object->transform.setTranslation(gl_position);
+                object->transform.setRotation(glm::eulerAngles(gl_orientation));
+
+                object->transform.updateModelMatrix();
+            }
         }
-
-        //delete collision shapes
-        for (int j = 0; j < collision_array.size(); j++)
-        {
-            btCollisionShape* shape = collision_array[j];
-            collision_array[j] = 0;
-            delete shape;
-        }
-
-        delete this->dynamics_world;
-        delete solver;
-        delete broadphase_interface;
-        delete dispatcher;
-        delete collision_configuration;
-
-        collision_array.clear();
-        object_array.clear();
     }
 };
 #endif

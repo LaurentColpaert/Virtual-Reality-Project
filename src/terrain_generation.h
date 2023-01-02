@@ -3,12 +3,13 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
+#include "BulletCollision/CollisionShapes/btHeightfieldTerrainShape.h"
 #include <iostream>
 
 #include "./tess_shader.h"
 
 const unsigned int NUM_PATCH_PTS = 4;
+
 
 class Terrain{
 public:
@@ -17,9 +18,17 @@ public:
     std::vector<float> vertices;  
     int terrain_width = 0;
     int terrain_height = 0; 
-    unsigned rez = 20;   
+    unsigned rez = 20;  
+    btRigidBody* rigid;
+    Object* terrain_obj;
+    btCollisionShape* shape;
+    unsigned char *heightData;
+    
+
+
 
     Terrain(){
+        terrain_obj = new Object();
         // Load the image of the mipmaps
         unsigned int texture;
         glGenTextures(1, &texture);
@@ -37,6 +46,15 @@ public:
 
             tessHeightMapShader.setInteger("heightMap", 0);
             std::cout << "Loaded heightmap of size " << height << " x " << width << std::endl;
+            // Iterate through the image data and populate the heightfieldData array
+            heightData = (unsigned char *) malloc(height*width*1);
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    // Extract the height value from the red channel of the pixel at position (x, y)
+                    heightData[y * width + x] = data[(y * width + x)];
+                }
+            }
+       
         }
         else
         {
@@ -45,6 +63,17 @@ public:
         stbi_image_free(data);
         terrain_width = width;
         terrain_height = height;
+
+        shape = new btHeightfieldTerrainShape(terrain_height,
+            terrain_width,
+            heightData,
+            1.0/255.0,
+            0,
+            0,
+            1,
+            PHY_UCHAR,
+            false
+        );
 
         // vertex generation
         for(unsigned i = 0; i <= rez-1; i++)
@@ -98,6 +127,9 @@ public:
         glDeleteVertexArrays(1, &terrainVAO);
         glDeleteBuffers(1, &terrainVBO);
     }
+
+    
+
 private:
     void Load_buffer(){
         glGenVertexArrays(1, &terrainVAO);

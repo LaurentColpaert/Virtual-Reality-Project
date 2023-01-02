@@ -35,13 +35,14 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
-const int src_width = 700;
+int src_width = 700;
 const int src_height = 700;
 float lastX = src_width / 2.0f;
 float lastY = src_height / 2.0f;
 bool firstMouse = true;
 
-Camera* camera = new Camera(glm::vec3(-2.0, 56.0, -5.0), glm::vec3(0.0, 0.5, 0.0), 90.0);
+
+Camera* camera = new Camera(glm::vec3(0, 50.0, -20));
 Callbacks callbacks  = Callbacks(camera);
 
 int main(int argc, char* argv[])
@@ -86,7 +87,7 @@ int main(int argc, char* argv[])
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	//comment to use texture
-	//glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 	//comment to stop using the mouse to move
 	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	FPS fps = FPS(window);
@@ -103,18 +104,23 @@ int main(int argc, char* argv[])
 
 	Object spirit = Object(PATH_TO_OBJECTS "/spirit.obj");
 	spirit.makeObject(simple_texture_shader,true);
-	spirit.transform.model = glm::translate(spirit.transform.model, glm::vec3(0.0,50.0,0.0));
+	spirit.transform.model = glm::translate(spirit.transform.model, glm::vec3(5.0,50.0,5.0));
 
 	Object sphere = Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 	sphere.makeObject(simple_shader);
-	sphere.transform.model = glm::translate(sphere.transform.model, glm::vec3(10.0,50.0,10.0));
+	sphere.transform.setTranslation(glm::vec3(0,50,0));
+	sphere.transform.updateModelMatrix(sphere.transform.model);
 
-	Object plane_test = Object(PATH_TO_OBJECTS "/plane.obj");
-	plane_test.makeObject(simple_shader);
-	plane_test.transform.model = glm::translate(plane_test.transform.model, glm::vec3(10.0,35.0,10.0));
+	// Object plane_test = Object(PATH_TO_OBJECTS "/plane.obj");
+	// plane_test.makeObject(simple_shader);
+	// plane_test.transform.setTranslation(glm::vec3(0.0,40.0,0.0));
+	// plane_test.transform.setScale(glm::vec3(10.0,1.0,10.0));
+	// plane_test.transform.updateModelMatrix(plane_test.transform.model);
 
-	Physic physic = Physic(&plane_test);
-	physic.addObject(&sphere);
+	Physic physic = Physic();
+	physic.addSphere(&sphere);
+	// physic.createGround(&plane_test);
+	physic.addTerrainToWorld(terrain);
 
 	GLuint spirit_texture;
 	glGenTextures(1, &spirit_texture);
@@ -147,6 +153,16 @@ int main(int argc, char* argv[])
 	simple_texture_shader.setFloat("light.linear", 0.74);
 	simple_texture_shader.setFloat("light.quadratic", 0.27);
 
+	simple_shader.use();
+	simple_shader.setInteger("ourTexture",1);
+	simple_shader.setFloat("shininess", 40.0f);
+	simple_shader.setFloat("light.ambient_strength", 1.0);
+	simple_shader.setFloat("light.diffuse_strength", 0.1);
+	simple_shader.setFloat("light.specular_strength", 0.1);
+	simple_shader.setFloat("light.constant", 1.4);
+	simple_shader.setFloat("light.linear", 0.74);
+	simple_shader.setFloat("light.quadratic", 0.27);
+
 	float ambient = 0.2;
 	float diffuse = 0.6;
 	float specular = 1.0;
@@ -165,7 +181,6 @@ int main(int argc, char* argv[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		physic.update();
-
 		terrain.draw(*camera,src_width,src_height);
 
 		skybox.set();
@@ -181,9 +196,18 @@ int main(int argc, char* argv[])
 		simple_texture_shader.setMatrix4("P", camera->GetProjectionMatrix());
 		spirit.draw();
 
+		// simple_shader.use();
+		// simple_shader.setMatrix4("M", plane_test.transform.model);
+		// simple_shader.setMatrix4("itM", glm::inverseTranspose(plane_test.transform.model));
+		// simple_shader.setVector3f("materialColour", materialColour);
+		// simple_shader.setMatrix4("V", camera->GetViewMatrix());
+		// simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
+		// plane_test.draw();
+
 		simple_shader.use();
 		simple_shader.setMatrix4("M", sphere.transform.model);
 		simple_shader.setMatrix4("itM", glm::inverseTranspose(sphere.transform.model));
+		simple_shader.setVector3f("materialColour", materialColour);
 		simple_shader.setMatrix4("V", camera->GetViewMatrix());
 		simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
 		sphere.draw();
@@ -193,7 +217,6 @@ int main(int argc, char* argv[])
 	}
 
 	terrain.destroy();
-	// physic.destroy();
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	return 0;
@@ -202,6 +225,7 @@ int main(int argc, char* argv[])
 
  void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     {
+		src_width = width;
         glViewport(0,0,width,width);
         camera->setRatio(width,height);
     }
