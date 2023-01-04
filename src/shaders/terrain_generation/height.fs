@@ -7,7 +7,8 @@ in float Height;
 void main()
 {
     float nb_pixel = 255.0;
-    float h = (Height + 16)/64.0f;	// shift and scale the height in to a grayscale value
+    //float h = Height;
+    float h = (Height)/64.0f;	// shift and scale the height in to a grayscale value
     vec3 color = vec3(h);
 
     //Water

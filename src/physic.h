@@ -94,7 +94,7 @@ public:
         btCollisionShape* shape = terrain.shape;
 
         // Create a motion state for the terrain
-        btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 0, 0)));
+        btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 32, 0)));
 
         // Create a rigid body for the terrain
         btRigidBody::btRigidBodyConstructionInfo constructionInfo(0, motionState, shape, btVector3(0, 0, 0));

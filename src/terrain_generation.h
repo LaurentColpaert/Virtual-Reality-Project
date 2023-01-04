@@ -10,6 +10,10 @@
 
 const unsigned int NUM_PATCH_PTS = 4;
 
+const float SIZE_X = 128.0f;
+const float SIZE_Y = 10.0f;
+const float SIZE_Z = 128.0f;
+
 
 class Terrain{
 public:
@@ -22,8 +26,10 @@ public:
     btRigidBody* rigid;
     Object* terrain_obj;
     btCollisionShape* shape;
-    unsigned char *heightData;
+    short int *heightData;
+    std::vector<short int> temp;
     
+
 
 
 
@@ -47,14 +53,14 @@ public:
             tessHeightMapShader.setInteger("heightMap", 0);
             std::cout << "Loaded heightmap of size " << height << " x " << width << std::endl;
             // Iterate through the image data and populate the heightfieldData array
-            heightData = (unsigned char *) malloc(height*width*1);
+            heightData = (short int *) malloc(height*width*2);
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
                     // Extract the height value from the red channel of the pixel at position (x, y)
-                    heightData[y * width + x] = data[(y * width + x)];
+                    heightData[y * width + x] = (short int) data[(y * width + x)];
+                    temp.push_back(data[(y * width + x)]);
                 }
             }
-       
         }
         else
         {
@@ -67,13 +73,17 @@ public:
         shape = new btHeightfieldTerrainShape(terrain_height,
             terrain_width,
             heightData,
-            1.0/255.0,
+            64.0/255.0,
             0,
-            0,
+            64,
             1,
-            PHY_UCHAR,
+            PHY_SHORT,
             false
         );
+        btVector3 aabbMin, aabbMax;
+        shape->getAabb(btTransform::getIdentity(), aabbMin, aabbMax);
+        std::cout << "Min AABB: " << "(" << aabbMin[0] << ", " << aabbMin[1] << ", " << aabbMin[2] << ")" << std::endl;
+        std::cout << "Max AABB: " << "(" << aabbMax[0] << ", " << aabbMax[1] << ", " << aabbMax[2] << ")" << std::endl;
 
         // vertex generation
         for(unsigned i = 0; i <= rez-1; i++)
@@ -81,25 +91,25 @@ public:
             for(unsigned j = 0; j <= rez-1; j++)
             {
                 vertices.push_back(-width/2.0f + width*i/(float)rez); // v.x
-                vertices.push_back(0.0f); // v.y
+                vertices.push_back(SIZE_Y/2); // v.y
                 vertices.push_back(-height/2.0f + height*j/(float)rez); // v.z
                 vertices.push_back(i / (float)rez); // u
                 vertices.push_back(j / (float)rez); // v
 
                 vertices.push_back(-width/2.0f + width*(i+1)/(float)rez); // v.x
-                vertices.push_back(0.0f); // v.y
+                vertices.push_back(SIZE_Y/2); // v.y
                 vertices.push_back(-height/2.0f + height*j/(float)rez); // v.z
                 vertices.push_back((i+1) / (float)rez); // u
                 vertices.push_back(j / (float)rez); // v
 
                 vertices.push_back(-width/2.0f + width*i/(float)rez); // v.x
-                vertices.push_back(0.0f); // v.y
+                vertices.push_back(SIZE_Y/2); // v.y
                 vertices.push_back(-height/2.0f + height*(j+1)/(float)rez); // v.z
                 vertices.push_back(i / (float)rez); // u
                 vertices.push_back((j+1) / (float)rez); // v
 
                 vertices.push_back(-width/2.0f + width*(i+1)/(float)rez); // v.x
-                vertices.push_back(0.0f); // v.y
+                vertices.push_back(SIZE_Y/2); // v.y
                 vertices.push_back(-height/2.0f + height*(j+1)/(float)rez); // v.z
                 vertices.push_back((i+1) / (float)rez); // u
                 vertices.push_back((j+1) / (float)rez); // v
