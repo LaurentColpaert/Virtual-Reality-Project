@@ -28,10 +28,6 @@ public:
     btCollisionShape* shape;
     short int *heightData;
     std::vector<short int> temp;
-    
-
-
-
 
     Terrain(){
         terrain_obj = new Object();
@@ -41,10 +37,10 @@ public:
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
         
-        // load image, create texture and generate mipmaps
+         // load image, create texture and generate mipmaps
         int width, height, nrChannels;
         // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
-        unsigned char *data = stbi_load(PATH_TO_TEXTURE "/height_map_island.png", &width, &height, &nrChannels, 0);
+        unsigned char *data = stbi_load(PATH_TO_TEXTURE "/flat_island.png", &width, &height, &nrChannels, 0);
         if (data)
         {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
@@ -117,7 +113,7 @@ public:
         }
         std::cout << "Loaded " << rez*rez << " patches of 4 control points each" << std::endl;
         std::cout << "Processing " << rez*rez*4 << " vertices in vertex shader" << std::endl;
-        Load_buffer();   
+        Load_buffer(); 
     }
 
     void draw(Camera camera,float width,float height){

@@ -49,6 +49,7 @@ public:
 
 	Transform transform;
 	btRigidBody* rigid;
+	bool verbose = false;
 
 	/** Creates an empty object without reading a ´.obj´ file. Used for hand-made mesh**/
 	Object(){
@@ -56,11 +57,11 @@ public:
 	}
 
 	/** Read an ´.obj´ file and parse it correctly to create an array of vertex**/
-	Object(const char* path) {
+	Object(const char* path, bool verbose = false) {
 		transform = Transform();
-
+		this->verbose = verbose;
 		std::ifstream infile(path);
-		std::cout << path << std::endl;
+		if (verbose) std::cout << path << std::endl;
 		std::string line;
 		while (std::getline(infile, line))
 		{
@@ -142,7 +143,7 @@ public:
 				vertices.push_back(v3);
 			}
 		}
-		std::cout << "Load model with " << vertices.size() << std::endl;
+		if(verbose)	std::cout << "Load model with " << vertices.size() << std::endl;
 
 		infile.close();
 		numVertices = vertices.size();
@@ -200,7 +201,7 @@ public:
 	void makeObject(std::vector<Vertex> vertices, int numVertices, Shader shader, bool texture = true) {
 		
 		this->numVertices = numVertices;
-		printf("Load model with %d \n", numVertices);
+		if (verbose) printf("Load model with %d \n", numVertices);
 		float* data = new float[8 * numVertices];
 		for (int i = 0; i < numVertices; i++) {
 			Vertex v = vertices.at(i);

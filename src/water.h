@@ -27,8 +27,8 @@ public:
         water_shader.setFloat("light.diffuse_strength", diffuse);
         water_shader.setFloat("light.specular_strength", specular);
         water_shader.setFloat("light.constant", 1.4);
-        water_shader.setFloat("light.linear", 0.74);
-        water_shader.setFloat("light.quadratic", 0.27);
+        water_shader.setFloat("light.linear", 0.9);
+        water_shader.setFloat("light.quadratic", 0.0);
     }
 
 

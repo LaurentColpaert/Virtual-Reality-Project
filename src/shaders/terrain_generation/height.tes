@@ -31,7 +31,7 @@ void main()
     vec2 t1 = (t11 - t10) * u + t10;
     vec2 texCoord = (t1 - t0) * v + t0;
 
-    // lookup texel at patch coordinate for height and scale + shift as desired
+    // lookup texel at patch coordinate for height and scale as desired
     Height = texture(heightMap, texCoord).x * 64.0;
 
     // ----------------------------------------------------------------------
@@ -58,4 +58,3 @@ void main()
     // output patch point position in clip space
     gl_Position = projection * view * model * p;
 }
-	

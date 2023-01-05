@@ -44,9 +44,9 @@ public:
     
     void addSphere(Object *obj){
         btCollisionShape* shape = new btSphereShape(1.0f); // radius of 1.0
-        printf("Translation is %f\n", obj->transform.translation.y);
         // Create a motion state for the sphere
         btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(obj->transform.translation.x,obj->transform.translation.y, obj->transform.translation.z))); 
+        // std::cout<<"The cube position is :" + glm::to_string(obj->transform.translation)<<std::endl;
 
         // Set the mass and inertia of the sphere
         btScalar mass = 1.0f;
@@ -58,6 +58,27 @@ public:
         btRigidBody* body = new btRigidBody(rbInfo);
 
         body->setLinearVelocity(btVector3(0,0,0));
+
+        body->setUserPointer(obj);
+        dynamics_world->addRigidBody(body);
+        obj->rigid = body;
+        objects.push_back(obj);
+    }
+
+    void addCube(Object *obj){
+        btCollisionShape* shape = new btBoxShape(btVector3(obj->transform.scale.x,obj->transform.scale.y,obj->transform.scale.z)); // radius of 1.0
+        // Create a motion state for the cube
+        btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(obj->transform.translation.x,obj->transform.translation.y, obj->transform.translation.z))); 
+        std::cout<<"The cube position is :" + glm::to_string(obj->transform.translation)<<std::endl;
+
+        // Set the mass and inertia of the cube
+        btScalar mass = 1.0f;
+        btVector3 inertia(0, 0, 0);
+        shape->calculateLocalInertia(mass, inertia);
+
+        // Create a rigid body for the cube
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, shape, inertia);
+        btRigidBody* body = new btRigidBody(rbInfo);
 
         body->setUserPointer(obj);
         dynamics_world->addRigidBody(body);

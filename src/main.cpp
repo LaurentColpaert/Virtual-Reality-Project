@@ -41,6 +41,9 @@ float lastX = src_width / 2.0f;
 float lastY = src_height / 2.0f;
 bool firstMouse = true;
 
+std::vector<Object*> cubes;
+int nb_cubes = 0;
+
 
 Camera* camera = new Camera(glm::vec3(0, 50.0, -20));
 Callbacks callbacks  = Callbacks(camera);
@@ -99,10 +102,12 @@ int main(int argc, char* argv[])
 	Shader simple_texture_shader(PATH_TO_SHADER "/texture/simple_texture.vs", PATH_TO_SHADER "/texture/simple_texture.fs");
 
 	Terrain terrain = Terrain();
+	// physic.addTerrainToWorld(terrain);
 	Skybox skybox = Skybox();
-	Water water = Water(1000,1.0, 1.0);	
+	Water water = Water(1000,1.0, 37.0);	
+	Physic physic = Physic();
 
-	Object spirit = Object(PATH_TO_OBJECTS "/spirit.obj");
+	Object spirit = Object(PATH_TO_OBJECTS "/spirit.obj",true);
 	spirit.makeObject(simple_texture_shader,true);
 	spirit.transform.model = glm::translate(spirit.transform.model, glm::vec3(5.0,50.0,5.0));
 
@@ -110,24 +115,33 @@ int main(int argc, char* argv[])
 	sphere.makeObject(simple_shader);
 	sphere.transform.setTranslation(glm::vec3(0,50,0));
 	sphere.transform.updateModelMatrix(sphere.transform.model);
-
-	// Object plane_test = Object(PATH_TO_OBJECTS "/plane.obj");
-	// plane_test.makeObject(simple_shader);
-	// plane_test.transform.setTranslation(glm::vec3(0.0,40.0,0.0));
-	// plane_test.transform.setScale(glm::vec3(10.0,1.0,10.0));
-	// plane_test.transform.updateModelMatrix(plane_test.transform.model);
-
-	Physic physic = Physic();
 	physic.addSphere(&sphere);
-	// physic.createGround(&plane_test);
-	physic.addTerrainToWorld(terrain);
+
+	Object plane_test = Object(PATH_TO_OBJECTS "/plane.obj");
+	plane_test.makeObject(simple_shader);
+	plane_test.transform.setTranslation(glm::vec3(0.0,40.0,0.0));
+	plane_test.transform.setScale(glm::vec3(10.0,1.0,10.0));
+	plane_test.transform.updateModelMatrix(plane_test.transform.model);
+	physic.createGround(&plane_test);
+
+	for(int i = 0; i < 5; i++){
+		for(int j =0; j <5; j++ ){
+			Object* cube = new Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
+			cube->makeObject(simple_shader);
+			cube->transform.setTranslation(glm::vec3(i * 3,42.0+j *3,0));
+			cube->transform.updateModelMatrix(cube->transform.model);
+			physic.addSphere(cube);
+			cubes.push_back(cube);
+			nb_cubes++;
+		}
+	}
 
 	GLuint spirit_texture;
 	glGenTextures(1, &spirit_texture);
 	glActiveTexture(GL_TEXTURE0+1);
 	glBindTexture(GL_TEXTURE_2D, spirit_texture);
 
-	stbi_set_flip_vertically_on_load(true);
+	stbi_set_flip_vertically_on_load(false);
 	int imWidth, imHeight, imNrChannels;
 	unsigned char* data = stbi_load(PATH_TO_TEXTURE "/spirit_uv.jpg", &imWidth, &imHeight, &imNrChannels, 0);
 	if (data)
@@ -140,6 +154,9 @@ int main(int argc, char* argv[])
 		const char* reason = stbi_failure_reason();
 		std::cout << reason << std::endl;
 	}
+
+
+	glm::vec3 light_pos = glm::vec3(0.0, 43.0, -1.0);
 	stbi_image_free(data);
 	glActiveTexture(GL_TEXTURE0+1);
 	glBindTexture(GL_TEXTURE_2D, spirit_texture);
@@ -152,22 +169,22 @@ int main(int argc, char* argv[])
 	simple_texture_shader.setFloat("light.constant", 1.4);
 	simple_texture_shader.setFloat("light.linear", 0.74);
 	simple_texture_shader.setFloat("light.quadratic", 0.27);
+	simple_texture_shader.setVector3f("light.light_pos",light_pos);
 
 	simple_shader.use();
-	simple_shader.setInteger("ourTexture",1);
 	simple_shader.setFloat("shininess", 40.0f);
-	simple_shader.setFloat("light.ambient_strength", 1.0);
-	simple_shader.setFloat("light.diffuse_strength", 0.1);
-	simple_shader.setFloat("light.specular_strength", 0.1);
-	simple_shader.setFloat("light.constant", 1.4);
-	simple_shader.setFloat("light.linear", 0.74);
-	simple_shader.setFloat("light.quadratic", 0.27);
+	simple_shader.setFloat("light.ambient_strength", 0.2);
+	simple_shader.setFloat("light.diffuse_strength", 0.7);
+	simple_shader.setFloat("light.specular_strength", 0.9);
+	simple_shader.setFloat("light.constant", 0.9);
+	simple_shader.setFloat("light.linear", 0.7);
+	simple_shader.setFloat("light.quadratic", 0.0);
+	simple_shader.setVector3f("light.light_pos",light_pos);
 
 	float ambient = 0.2;
 	float diffuse = 0.6;
 	float specular = 1.0;
 
-	glm::vec3 light_pos = glm::vec3(0.0, 52.0, 0.0);
 	glm::vec3 materialColour = glm::vec3(0.17,0.68,0.89);	
 
 	water.setup_water_shader(ambient,diffuse,specular);
@@ -196,13 +213,13 @@ int main(int argc, char* argv[])
 		simple_texture_shader.setMatrix4("P", camera->GetProjectionMatrix());
 		spirit.draw();
 
-		// simple_shader.use();
-		// simple_shader.setMatrix4("M", plane_test.transform.model);
-		// simple_shader.setMatrix4("itM", glm::inverseTranspose(plane_test.transform.model));
-		// simple_shader.setVector3f("materialColour", materialColour);
-		// simple_shader.setMatrix4("V", camera->GetViewMatrix());
-		// simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
-		// plane_test.draw();
+		simple_shader.use();
+		simple_shader.setMatrix4("M", plane_test.transform.model);
+		simple_shader.setMatrix4("itM", glm::inverseTranspose(plane_test.transform.model));
+		simple_shader.setVector3f("materialColour", glm::vec3(0.56,0.24,0.12));
+		simple_shader.setMatrix4("V", camera->GetViewMatrix());
+		simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
+		plane_test.draw();
 
 		simple_shader.use();
 		simple_shader.setMatrix4("M", sphere.transform.model);
@@ -211,6 +228,16 @@ int main(int argc, char* argv[])
 		simple_shader.setMatrix4("V", camera->GetViewMatrix());
 		simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
 		sphere.draw();
+
+		for(int i = 0; i < nb_cubes; i++){
+			Object * obj = cubes[i];
+			simple_shader.setMatrix4("M", obj->transform.model);
+			simple_shader.setMatrix4("itM", glm::inverseTranspose(obj->transform.model));
+			simple_shader.setVector3f("materialColour", materialColour);
+			simple_shader.setMatrix4("V", camera->GetViewMatrix());
+			simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
+			obj->draw();
+		}
 		
 		fps.display(now);
 		glfwSwapBuffers(window);
