@@ -6,7 +6,7 @@ in vec3 v_normal;
 in vec3 v_frag_coord;
 out vec4 FragColor;
 
-uniform sampler2D ourTexture; 
+uniform sampler2D my_texture; 
 
 uniform vec3 u_view_pos;
 struct Light{
@@ -41,5 +41,5 @@ void main() {
     float light = light.ambient_strength + attenuation * (diffuse + specular);
     vec4 color = 
     // FragColor = vec4(color.xyz * light, 1.0);
-    FragColor =  texture(ourTexture, v_tex); 
+    FragColor =  texture(my_texture, v_tex); 
 }

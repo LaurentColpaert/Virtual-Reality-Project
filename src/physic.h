@@ -6,6 +6,7 @@
 #include "BulletCollision/CollisionShapes/btHeightfieldTerrainShape.h"
 
 #include "object.h"
+#include "camera.h"
 #include "utils/transform_conversion.h"
 
 class Physic{
@@ -65,6 +66,30 @@ public:
         objects.push_back(obj);
     }
 
+    void launch_sphere(Object *obj, int speed, Camera* camera){
+        btCollisionShape* shape = new btSphereShape(1.0f); // radius of 1.0
+        // Create a motion state for the sphere
+        btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(obj->transform.translation.x,obj->transform.translation.y, obj->transform.translation.z))); 
+        // std::cout<<"The cube position is :" + glm::to_string(obj->transform.translation)<<std::endl;
+
+        // Set the mass and inertia of the sphere
+        btScalar mass = 1.0f;
+        btVector3 inertia(0, 0, 0);
+        shape->calculateLocalInertia(mass, inertia);
+
+        // Create a rigid body for the sphere
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, shape, inertia);
+        btRigidBody* body = new btRigidBody(rbInfo);
+
+        body->setLinearVelocity(btVector3(speed,0,0));
+
+        body->setUserPointer(obj);
+        dynamics_world->addRigidBody(body);
+        obj->rigid = body;
+        objects.push_back(obj);
+    }
+
+
     void addCube(Object *obj){
         btCollisionShape* shape = new btBoxShape(btVector3(obj->transform.scale.x,obj->transform.scale.y,obj->transform.scale.z)); // radius of 1.0
         // Create a motion state for the cube
@@ -84,6 +109,14 @@ public:
         dynamics_world->addRigidBody(body);
         obj->rigid = body;
         objects.push_back(obj);
+    }
+
+    void addSpirit(Spirit *obj){
+        Object *spirit = obj->getObject();
+        btRigidBody* body = obj->getRigidBody();
+        body->setUserPointer(spirit);
+        dynamics_world->addRigidBody(body);
+        objects.push_back(obj->spirit);
     }
 
 

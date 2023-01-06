@@ -26,6 +26,7 @@
 #include "./terrain_generation.h"
 #include "./skybox.h"
 #include "./water.h"
+#include "./spirit.h"
 #include "./physic.h"
 #include "./utils/debug.h"
 #include "./utils/callbacks.h"
@@ -34,6 +35,9 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit);
+void create_launch_sphere(Shader shader, Physic physic, Spirit spirit);
+
 
 int src_width = 700;
 const int src_height = 700;
@@ -44,9 +48,9 @@ bool firstMouse = true;
 std::vector<Object*> cubes;
 int nb_cubes = 0;
 
+std::vector<Object*> launched_spheres;
 
 Camera* camera = new Camera(glm::vec3(0, 50.0, -20));
-Callbacks callbacks  = Callbacks(camera);
 
 int main(int argc, char* argv[])
 {
@@ -99,7 +103,6 @@ int main(int argc, char* argv[])
 #endif
 
 	Shader simple_shader(PATH_TO_SHADER "/simple.vs", PATH_TO_SHADER "/simple.fs");
-	Shader simple_texture_shader(PATH_TO_SHADER "/texture/simple_texture.vs", PATH_TO_SHADER "/texture/simple_texture.fs");
 
 	Terrain terrain = Terrain();
 	// physic.addTerrainToWorld(terrain);
@@ -107,9 +110,8 @@ int main(int argc, char* argv[])
 	Water water = Water(1000,1.0, 37.0);	
 	Physic physic = Physic();
 
-	Object spirit = Object(PATH_TO_OBJECTS "/spirit.obj",true);
-	spirit.makeObject(simple_texture_shader,true);
-	spirit.transform.model = glm::translate(spirit.transform.model, glm::vec3(5.0,50.0,5.0));
+	Spirit spirit = Spirit(glm::vec3(1,50,1));
+	physic.addSpirit(&spirit);
 
 	Object sphere = Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 	sphere.makeObject(simple_shader);
@@ -128,7 +130,7 @@ int main(int argc, char* argv[])
 		for(int j =0; j <5; j++ ){
 			Object* cube = new Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 			cube->makeObject(simple_shader);
-			cube->transform.setTranslation(glm::vec3(i * 3,42.0+j *3,0));
+			cube->transform.setTranslation(glm::vec3(i * 3 + j*1.5,42.0+j *3,i*2));
 			cube->transform.updateModelMatrix(cube->transform.model);
 			physic.addSphere(cube);
 			cubes.push_back(cube);
@@ -136,40 +138,9 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	GLuint spirit_texture;
-	glGenTextures(1, &spirit_texture);
-	glActiveTexture(GL_TEXTURE0+1);
-	glBindTexture(GL_TEXTURE_2D, spirit_texture);
-
-	stbi_set_flip_vertically_on_load(true);
-	int imWidth, imHeight, imNrChannels;
-	unsigned char* data = stbi_load(PATH_TO_TEXTURE "/spirit_uv.jpg", &imWidth, &imHeight, &imNrChannels, 0);
-	if (data)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imWidth, imHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else {
-		std::cout << "Failed to Load texture" << std::endl;
-		const char* reason = stbi_failure_reason();
-		std::cout << reason << std::endl;
-	}
-
-
 	glm::vec3 light_pos = glm::vec3(0.0, 43.0, -1.0);
-	stbi_image_free(data);
-	glActiveTexture(GL_TEXTURE0+1);
-	glBindTexture(GL_TEXTURE_2D, spirit_texture);
-	simple_texture_shader.use();
-	simple_texture_shader.setInteger("ourTexture",1);
-	simple_texture_shader.setFloat("shininess", 40.0f);
-	simple_texture_shader.setFloat("light.ambient_strength", 1.0);
-	simple_texture_shader.setFloat("light.diffuse_strength", 0.1);
-	simple_texture_shader.setFloat("light.specular_strength", 0.1);
-	simple_texture_shader.setFloat("light.constant", 1.4);
-	simple_texture_shader.setFloat("light.linear", 0.74);
-	simple_texture_shader.setFloat("light.quadratic", 0.27);
-	simple_texture_shader.setVector3f("light.light_pos",light_pos);
+	
+	
 
 	simple_shader.use();
 	simple_shader.setFloat("shininess", 40.0f);
@@ -188,10 +159,12 @@ int main(int argc, char* argv[])
 	glm::vec3 materialColour = glm::vec3(0.17,0.68,0.89);	
 
 	water.setup_water_shader(ambient,diffuse,specular);
+
+	spirit.setup_spirit_shader(ambient,diffuse,specular,light_pos);
 	
 	glfwSwapInterval(1);
 	while (!glfwWindowShouldClose(window)) {
-		callbacks.processInput(window);
+		processInput(window, simple_shader, physic, spirit);
 		glfwPollEvents();
 		double now = glfwGetTime();
 		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
@@ -204,16 +177,12 @@ int main(int argc, char* argv[])
 
 		water.draw(*camera,materialColour,light_pos,now);
 		skybox.draw(*camera);
+		spirit.draw(camera);
 
-		simple_texture_shader.use();
-		simple_texture_shader.setInteger("ourTexture",1);
-		simple_texture_shader.setMatrix4("M", spirit.transform.model);
-		simple_texture_shader.setMatrix4("itM", glm::inverseTranspose(spirit.transform.model));
-		simple_texture_shader.setMatrix4("V", camera->GetViewMatrix());
-		simple_texture_shader.setMatrix4("P", camera->GetProjectionMatrix());
-		spirit.draw();
+		
 
 		simple_shader.use();
+		simple_shader.setVector3f("u_view_pos", camera->Position);
 		simple_shader.setMatrix4("M", plane_test.transform.model);
 		simple_shader.setMatrix4("itM", glm::inverseTranspose(plane_test.transform.model));
 		simple_shader.setVector3f("materialColour", glm::vec3(0.56,0.24,0.12));
@@ -238,7 +207,6 @@ int main(int argc, char* argv[])
 			simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
 			obj->draw();
 		}
-		
 		fps.display(now);
 		glfwSwapBuffers(window);
 	}
@@ -278,4 +246,29 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	camera->ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+/**Handle the input of the keyboard and launch the corresponding function**/
+void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit) {
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)		glfwSetWindowShouldClose(window, true);
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)			camera->ProcessKeyboardMovement(LEFT, 0.1);
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)		    camera->ProcessKeyboardMovement(RIGHT, 0.1);
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)		    camera->ProcessKeyboardMovement(FORWARD, 0.1);
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)		    camera->ProcessKeyboardMovement(BACKWARD, 0.1);
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)		camera->ProcessKeyboardRotation(1, 0.0, 1);
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)		camera->ProcessKeyboardRotation(-1, 0.0, 1);
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)		    camera->ProcessKeyboardRotation(0.0, 1.0, 1);
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)		camera->ProcessKeyboardRotation(0.0, -1.0, 1);
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){
+		create_launch_sphere(shader,physic,spirit);
+	}
+}
+
+void create_launch_sphere(Shader shader, Physic physic, Spirit spirit){
+	Object* sphere = new  Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
+	sphere->makeObject(shader);
+	sphere->transform.setTranslation(spirit.getObject()->transform.getWorldTranslation());
+	sphere->transform.updateModelMatrix(sphere->transform.model);
+	physic.launch_sphere(sphere, 10, camera);
+	launched_spheres.push_back(sphere);
 }
