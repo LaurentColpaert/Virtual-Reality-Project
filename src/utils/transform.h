@@ -76,5 +76,11 @@ public:
         mtx[3][2] += translation.z;
         model = starting_matrix * mtx;
     }
+
+    glm::vec3 get_forward(){
+        glm::mat3 rotMat(model);;
+        glm::vec3 forward = rotMat * glm::vec3(0, 0, 1);
+        return glm::normalize(forward);
+    }
 };
 #endif

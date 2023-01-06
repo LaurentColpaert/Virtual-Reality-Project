@@ -88,7 +88,7 @@ private:
         std::cout<<"The cube position is :" + glm::to_string(spirit->transform.translation)<<std::endl;
 
         // Set the mass and inertia of the cube
-        btScalar mass = 5.0f;
+        btScalar mass = 50.0f;
         btVector3 inertia(0, 0, 0);
         shape->calculateLocalInertia(mass, inertia);
 

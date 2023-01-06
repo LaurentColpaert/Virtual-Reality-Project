@@ -66,11 +66,11 @@ public:
         objects.push_back(obj);
     }
 
-    void launch_sphere(Object *obj, int speed, Camera* camera){
+    void launch_sphere(Object *obj, int speed, Spirit spirit){
         btCollisionShape* shape = new btSphereShape(1.0f); // radius of 1.0
         // Create a motion state for the sphere
+
         btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(obj->transform.translation.x,obj->transform.translation.y, obj->transform.translation.z))); 
-        // std::cout<<"The cube position is :" + glm::to_string(obj->transform.translation)<<std::endl;
 
         // Set the mass and inertia of the sphere
         btScalar mass = 1.0f;
@@ -80,8 +80,9 @@ public:
         // Create a rigid body for the sphere
         btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, shape, inertia);
         btRigidBody* body = new btRigidBody(rbInfo);
-
-        body->setLinearVelocity(btVector3(speed,0,0));
+        glm::vec3 dir = spirit.getObject()->transform.get_forward();
+        btVector3 btDir = btVector3(dir.x,0,dir.z) * speed;
+        body->applyCentralForce(btDir);
 
         body->setUserPointer(obj);
         dynamics_world->addRigidBody(body);

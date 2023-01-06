@@ -49,8 +49,10 @@ std::vector<Object*> cubes;
 int nb_cubes = 0;
 
 std::vector<Object*> launched_spheres;
+double now;
+bool sphere_launched = false;
 
-Camera* camera = new Camera(glm::vec3(0, 50.0, -20));
+Camera* camera = new Camera(glm::vec3(0, 50.0, -25));
 
 int main(int argc, char* argv[])
 {
@@ -111,7 +113,9 @@ int main(int argc, char* argv[])
 	Physic physic = Physic();
 
 	Spirit spirit = Spirit(glm::vec3(1,50,1));
+	// spirit.getObject()->transform.setRotation(glm::vec3(cos(90),0,0));
 	physic.addSpirit(&spirit);
+
 
 	Object sphere = Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 	sphere.makeObject(simple_shader);
@@ -122,7 +126,7 @@ int main(int argc, char* argv[])
 	Object plane_test = Object(PATH_TO_OBJECTS "/plane.obj");
 	plane_test.makeObject(simple_shader);
 	plane_test.transform.setTranslation(glm::vec3(0.0,40.0,0.0));
-	plane_test.transform.setScale(glm::vec3(10.0,1.0,10.0));
+	plane_test.transform.setScale(glm::vec3(100.0,1.0,100.0));
 	plane_test.transform.updateModelMatrix(plane_test.transform.model);
 	physic.createGround(&plane_test);
 
@@ -140,8 +144,6 @@ int main(int argc, char* argv[])
 
 	glm::vec3 light_pos = glm::vec3(0.0, 43.0, -1.0);
 	
-	
-
 	simple_shader.use();
 	simple_shader.setFloat("shininess", 40.0f);
 	simple_shader.setFloat("light.ambient_strength", 0.2);
@@ -179,7 +181,6 @@ int main(int argc, char* argv[])
 		skybox.draw(*camera);
 		spirit.draw(camera);
 
-		
 
 		simple_shader.use();
 		simple_shader.setVector3f("u_view_pos", camera->Position);
@@ -207,6 +208,17 @@ int main(int argc, char* argv[])
 			simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
 			obj->draw();
 		}
+
+		for(int i = 0; i < launched_spheres.size(); i++){
+			Object * obj = launched_spheres[i];
+			simple_shader.setMatrix4("M", obj->transform.model);
+			simple_shader.setMatrix4("itM", glm::inverseTranspose(obj->transform.model));
+			simple_shader.setVector3f("materialColour", materialColour);
+			simple_shader.setMatrix4("V", camera->GetViewMatrix());
+			simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
+			obj->draw();
+
+		}
 		fps.display(now);
 		glfwSwapBuffers(window);
 	}
@@ -217,18 +229,14 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
+void framebuffer_size_callback(GLFWwindow* window, int width, int height){
+	src_width = width;
+	glViewport(0,0,width,width);
+	camera->setRatio(width,height);
+}
 
- void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-    {
-		src_width = width;
-        glViewport(0,0,width,width);
-        camera->setRatio(width,height);
-    }
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
-{
-	if (firstMouse)
-	{
+void mouse_callback(GLFWwindow* window, double xpos, double ypos){
+	if (firstMouse){
 		lastX = xpos;
 		lastY = ypos;
 		firstMouse = false;
@@ -243,13 +251,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	camera->ProcessMouseMovement(xoffset, yoffset);
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
 	camera->ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
 /**Handle the input of the keyboard and launch the corresponding function**/
-void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit) {
+void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit){
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)		glfwSetWindowShouldClose(window, true);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)			camera->ProcessKeyboardMovement(LEFT, 0.1);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)		    camera->ProcessKeyboardMovement(RIGHT, 0.1);
@@ -259,16 +266,44 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)		camera->ProcessKeyboardRotation(-1, 0.0, 1);
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)		    camera->ProcessKeyboardRotation(0.0, 1.0, 1);
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)		camera->ProcessKeyboardRotation(0.0, -1.0, 1);
+	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS){
+		spirit.getRigidBody()->applyCentralForce(btVector3(0,0,1) * 200);
+	}
+	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS){
+		spirit.getRigidBody()->applyCentralForce(btVector3(1,0,0) * 200);
+	}
+	if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS){
+		spirit.getRigidBody()->applyCentralForce(btVector3(0,0,-1) * 200);
+	}
+	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS){
+		spirit.getRigidBody()->applyCentralForce(btVector3(-1,0,0) * 200);
+	}
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){
-		create_launch_sphere(shader,physic,spirit);
+		spirit.getRigidBody()->applyCentralForce(btVector3(0,1,0) * 300);
+	}
+	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS){
+		if (!sphere_launched){
+			create_launch_sphere(shader,physic,spirit);
+			now = glfwGetTime();
+			sphere_launched = true;
+		}else{
+			if(glfwGetTime()- now > 1){
+				create_launch_sphere(shader,physic,spirit);
+				now = glfwGetTime();
+			}
+		}
+
+		
 	}
 }
 
 void create_launch_sphere(Shader shader, Physic physic, Spirit spirit){
 	Object* sphere = new  Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 	sphere->makeObject(shader);
-	sphere->transform.setTranslation(spirit.getObject()->transform.getWorldTranslation());
+	glm::vec3 dir = spirit.getObject()->transform.get_forward();
+	glm::vec3 position = spirit.getObject()->transform.getWorldTranslation() + dir * glm::vec3(1,0,1);
+	sphere->transform.setTranslation(position);
 	sphere->transform.updateModelMatrix(sphere->transform.model);
-	physic.launch_sphere(sphere, 10, camera);
+	physic.launch_sphere(sphere, 2000, spirit);
 	launched_spheres.push_back(sphere);
 }
