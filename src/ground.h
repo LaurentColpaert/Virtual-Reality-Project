@@ -54,6 +54,14 @@ public:
 		shader.setMatrix4("P", camera->GetProjectionMatrix());
 		ground->draw();
     }  
+    void draw(Camera* camera,Shader shader){
+        shader.use();
+		shader.setVector3f("viewPos", camera->Position);
+		shader.setMatrix4("M", ground->transform.model);
+		shader.setMatrix4("V", camera->GetViewMatrix());
+		shader.setMatrix4("P", camera->GetProjectionMatrix());
+		ground->draw();
+    }  
 
     Object* getObject(){
         return ground;
