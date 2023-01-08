@@ -177,7 +177,7 @@ public:
         btDefaultMotionState* motion_state = new btDefaultMotionState(transform);
         btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motion_state, groundShape, btVector3(0,0,0));
         btRigidBody* body = new btRigidBody(rbInfo);
-
+        body->setFriction(0.0f);
         body->setUserPointer(obj);
         dynamics_world->addRigidBody(body);
         obj->rigid = body;

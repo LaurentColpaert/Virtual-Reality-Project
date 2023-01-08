@@ -39,6 +39,9 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 void create_launch_sphere(Shader shader, Physic physic, Spirit spirit);
 
 
+int speed = 1;
+float degree_rotation = 2.0;
+
 int src_width = 700;
 const int src_height = 700;
 float lastX = src_width / 2.0f;
@@ -266,20 +269,44 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)		camera->ProcessKeyboardRotation(-1, 0.0, 1);
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)		    camera->ProcessKeyboardRotation(0.0, 1.0, 1);
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)		camera->ProcessKeyboardRotation(0.0, -1.0, 1);
-	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS){
-		spirit.getRigidBody()->applyCentralForce(btVector3(0,0,1) * 200);
+	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS){ //forward
+		glm::vec3 dir = spirit.getObject()->transform.get_forward();
+		btVector3 bt_dir = btVector3(dir.x,dir.y,dir.z);
+		btTransform xform = spirit.getRigidBody()->getWorldTransform();
+		btVector3 cur = spirit.getRigidBody()->getLinearVelocity();
+		btVector3 basis = xform.getBasis()[2];
+		btVector3 vel = speed * 2 * bt_dir;
+
+		spirit.getRigidBody()->setLinearVelocity(btVector3(vel[0], cur[1], vel[2]));
+
+		// spirit.getRigidBody()->applyCentralForce(btVector3(0,0,1) * 500);
 	}
-	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS){
-		spirit.getRigidBody()->applyCentralForce(btVector3(1,0,0) * 200);
+	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS){ //Turn left
+		btTransform transform = spirit.getRigidBody()->getWorldTransform();
+		btQuaternion rotation = transform.getRotation();
+		btQuaternion q; // Quaternion to rotate
+		btScalar angle = glm::radians(degree_rotation); // Euler angles in radians
+		q.setEuler(0, 0, angle); // Set the quaternion using Euler angles
+
+		transform.setRotation(q * rotation);
+		spirit.getRigidBody()->setWorldTransform(transform);
 	}
-	if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS){
-		spirit.getRigidBody()->applyCentralForce(btVector3(0,0,-1) * 200);
+	if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS){//backward
+		btTransform xform = spirit.getRigidBody()->getWorldTransform();
+		btVector3 cur = spirit.getRigidBody()->getLinearVelocity();
+		btVector3 basis = xform.getBasis()[2];
+		btVector3 vel = -speed * 2 * basis;
+		spirit.getRigidBody()->setLinearVelocity(btVector3(vel[0], cur[1], vel[2]));
 	}
-	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS){
-		spirit.getRigidBody()->applyCentralForce(btVector3(-1,0,0) * 200);
-	}
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){
-		spirit.getRigidBody()->applyCentralForce(btVector3(0,1,0) * 300);
+	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS){ //turn right
+		btTransform transform = spirit.getRigidBody()->getWorldTransform();
+		btQuaternion rotation = transform.getRotation();
+		btQuaternion q; // Quaternion to rotate
+		btScalar angle = -glm::radians(degree_rotation); // Euler angles in radians
+		q.setEuler(0, 0, angle); // Set the quaternion using Euler angles
+
+		transform.setRotation(q * rotation);
+		spirit.getRigidBody()->setWorldTransform(transform);
 	}
 	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS){
 		if (!sphere_launched){
@@ -292,8 +319,9 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 				now = glfwGetTime();
 			}
 		}
-
-		
+	}
+	else{
+		spirit.getRigidBody()->setLinearVelocity(btVector3(0,0,0));
 	}
 }
 
