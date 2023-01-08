@@ -17,4 +17,4 @@ void main(){
     gl_Position = P*V*frag_coord; 
     v_normal = vec3(itM * vec4(normal, 1.0)); 
     v_frag_coord = frag_coord.xyz; 
-};
+};  
