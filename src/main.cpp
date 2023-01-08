@@ -38,8 +38,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit);
 void create_launch_sphere(Shader shader, Physic physic, Spirit spirit);
-unsigned int loadTexture(char const * path, int texture_nb);
-void renderQuad();
 
 int speed = 1;
 float degree_rotation = 2.0;
@@ -116,12 +114,19 @@ int main(int argc, char* argv[])
 	Skybox skybox = Skybox();
 	Water water = Water(1000,1.0, 37.0);	
 	Physic physic = Physic();
-	Ground ground = Ground();
 
+	Ground ground = Ground();
+	physic.addGround(&ground);
 
 	Spirit spirit = Spirit(glm::vec3(1,50,1));
 	// spirit.getObject()->transform.setRotation(glm::vec3(cos(90),0,0));
 	physic.addSpirit(&spirit);
+
+	Object sphere = Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
+	sphere.makeObject(simple_shader);
+	sphere.transform.setTranslation(glm::vec3(0,50,0));
+	sphere.transform.updateModelMatrix(sphere.transform.model);
+	physic.addSphere(&sphere);
 
 	// Object plane_test = Object(PATH_TO_OBJECTS "/plane.obj");
 	// plane_test.makeObject(simple_shader);
@@ -172,16 +177,17 @@ int main(int argc, char* argv[])
 		double now = glfwGetTime();
 		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		physic.update();
+		terrain.draw(*camera,src_width,src_height);
+
 		skybox.set();
 
-		// phy	sic.update();
-
-
-		terrain.draw(*camera,src_width,src_height);
 		water.draw(*camera,materialColour,light_pos,now);
 		skybox.draw(*camera);
 		spirit.draw(camera);
 		ground.draw(camera);
+		
 		// simple_shader.use();
 		// simple_shader.setVector3f("u_view_pos", camera->Position);
 		// simple_shader.setMatrix4("M", plane_test.transform.model);
@@ -191,6 +197,13 @@ int main(int argc, char* argv[])
 		// simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
 		// plane_test.draw();
 
+		simple_shader.use();
+		simple_shader.setMatrix4("M", sphere.transform.model);
+		simple_shader.setMatrix4("itM", glm::inverseTranspose(sphere.transform.model));
+		simple_shader.setVector3f("materialColour", materialColour);
+		simple_shader.setMatrix4("V", camera->GetViewMatrix());
+		simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
+		sphere.draw();
 
 		for(int i = 0; i < nb_cubes; i++){
 			Object * obj = cubes[i];
@@ -311,7 +324,8 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 		}
 	}
 	else{
-		spirit.getRigidBody()->setLinearVelocity(btVector3(0,0,0));
+		// btVector3 temp_velocity = spirit.getRigidBody()->getLinearVelocity();
+		// spirit.getRigidBody()->setLinearVelocity(btVector3(0,temp_velocity[1],0));
 	}
 }
 

@@ -120,30 +120,14 @@ public:
         objects.push_back(obj->spirit);
     }
 
-
-    void addObject(Object *obj){
-        btCollisionShape* shape = new btSphereShape(btScalar(0.0));
-
-        btTransform transform;
-        transform.setIdentity();
-
-        btScalar mass(1.f);
-
-        btVector3 localInertia(0, 0, 0);
-        if (mass != 0) shape->calculateLocalInertia(mass, localInertia);
-
-        transform.setOrigin(btVector3(obj->transform.translation.x, obj->transform.translation.y, obj->transform.translation.z));
-
-        btDefaultMotionState* motion_state = new btDefaultMotionState(transform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motion_state, shape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-
-        body->setUserPointer(obj);
+    void addGround(Ground *obj){
+        Object *ground = obj->getObject();
+        btRigidBody* body = obj->getRigidBody();
+        body->setUserPointer(ground);
         dynamics_world->addRigidBody(body);
-        obj->rigid = body;
-        objects.push_back(obj);
+        objects.push_back(obj->ground);
     }
-
+    
     void addTerrainToWorld(Terrain& terrain){
         // Create a triangle mesh shape for the terrain
         btCollisionShape* shape = terrain.shape;
@@ -165,25 +149,6 @@ public:
         objects.push_back(obj);
     }
 
-    void createGround(Object *obj){
-        btCollisionShape* groundShape = new btBoxShape(btVector3(obj->transform.scale.x, 0, obj->transform.scale.z));
-
-        btTransform transform;
-        transform.setIdentity();
-        transform.setOrigin(btVector3(0, obj->transform.translation.y, 0));
-
-        btScalar mass(0);
-
-        btDefaultMotionState* motion_state = new btDefaultMotionState(transform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motion_state, groundShape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setFriction(0.0f);
-        body->setUserPointer(obj);
-        dynamics_world->addRigidBody(body);
-        obj->rigid = body;
-        objects.push_back(obj);
-    }
-    
     void update(){
         dynamics_world->stepSimulation(1.f / 60.f, 1);
         for (int i = 0; i < dynamics_world->getNumCollisionObjects(); i++)
