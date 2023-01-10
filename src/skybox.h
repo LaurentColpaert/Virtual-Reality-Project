@@ -46,7 +46,6 @@ public:
     void set(){
         glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP,sky_texture);
-		skybox_shader.setInteger("cubemapTexture", 0);
     }
     
     void draw(Camera camera){

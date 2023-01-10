@@ -48,6 +48,8 @@ public:
 
     void draw(Camera* camera){
         shader.use();
+        shader.setInteger("diffuseMap", 2);
+        shader.setInteger("normalMap", 3);
 		shader.setVector3f("viewPos", camera->Position);
 		shader.setMatrix4("M", ground->transform.model);
 		shader.setMatrix4("V", camera->GetViewMatrix());

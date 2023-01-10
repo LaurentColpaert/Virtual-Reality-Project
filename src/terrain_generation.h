@@ -28,11 +28,11 @@ public:
     btCollisionShape* shape;
     short int *heightData;
     std::vector<short int> temp;
+    unsigned int texture;
 
     Terrain(){
         terrain_obj = new Object();
         // Load the image of the mipmaps
-        unsigned int texture;
         glGenTextures(1, &texture);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
@@ -118,13 +118,12 @@ public:
 
     void draw(Camera camera,float width,float height){
         tessHeightMapShader.use();
-
-        // view/projection transformations
         tessHeightMapShader.setMatrix4("projection",camera.GetProjectionMatrix());
         tessHeightMapShader.setMatrix4("view", camera.GetViewMatrix());
         tessHeightMapShader.setMatrix4("model", glm::mat4(1.0f));
 
         // render the terrain
+        glBindTexture(GL_TEXTURE_2D, texture);
         glBindVertexArray(terrainVAO);
         glDrawArrays(GL_PATCHES, 0, NUM_PATCH_PTS*rez*rez);
     }

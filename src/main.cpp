@@ -93,6 +93,12 @@ int main(int argc, char* argv[])
 	glEnable(GL_DEPTH_TEST);
 	glPatchParameteri(GL_PATCH_VERTICES,4);
 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);	// set texture wrapping to GL_REPEAT (default wrapping method)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_READ_COLOR_ARB);
+	// set texture filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 	//comment to use texture
 	// glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 	//comment to stop using the mouse to move
@@ -106,18 +112,20 @@ int main(int argc, char* argv[])
 	Shader depth_shader(PATH_TO_SHADER "/depth/depth.vs", PATH_TO_SHADER "/depth/depth.fs");
 	Shader debugDepthQuad(PATH_TO_SHADER "/depth/debug_depth.vs", PATH_TO_SHADER "/depth/debug_depth.fs");
 
+	Skybox skybox = Skybox();
+
 	Terrain terrain = Terrain();
 	// physic.addTerrainToWorld(terrain);
-	Skybox skybox = Skybox();
 	Water water = Water(1000,1.0, 37.0);	
 	Physic physic = Physic();
-
-	Ground ground = Ground();
-	physic.addGround(&ground);
 
 	Spirit spirit = Spirit(glm::vec3(1,50,1));
 	// spirit.getObject()->transform.setRotation(glm::vec3(cos(90),0,0));
 	physic.addSpirit(&spirit);
+
+	Ground ground = Ground();
+	physic.addGround(&ground);
+
 
 	Object sphere = Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 	sphere.makeObject(simple_shader);
@@ -296,10 +304,8 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 		btVector3 cur = spirit.getRigidBody()->getLinearVelocity();
 		btVector3 basis = xform.getBasis()[2];
 		btVector3 vel = speed * 2 * bt_dir;
-
+		spirit.getRigidBody()->activate(true);
 		spirit.getRigidBody()->setLinearVelocity(btVector3(vel[0], cur[1], vel[2]));
-
-		// spirit.getRigidBody()->applyCentralForce(btVector3(0,0,1) * 500);
 	}
 	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS){ //Turn left
 		btTransform transform = spirit.getRigidBody()->getWorldTransform();
@@ -316,6 +322,7 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 		btVector3 cur = spirit.getRigidBody()->getLinearVelocity();
 		btVector3 basis = xform.getBasis()[2];
 		btVector3 vel = -speed * 2 * basis;
+		spirit.getRigidBody()->activate(true);
 		spirit.getRigidBody()->setLinearVelocity(btVector3(vel[0], cur[1], vel[2]));
 	}
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS){ //turn right
@@ -361,10 +368,13 @@ void renderScene(bool depth,Shader shader, Terrain terrain, Skybox skybox, Water
 	glm::vec3 materialColour = glm::vec3(0.17,0.68,0.89);	
 
 	terrain.draw(*camera,src_width,src_height);
-	skybox.set();
+	// skybox.set();
 	water.draw(*camera,materialColour,light_pos,now);
+
 	skybox.draw(*camera);
 	spirit.draw(camera);
+
+
 	if (depth)	ground.draw(camera,shader);
 	else ground.draw(camera);
 
@@ -405,35 +415,4 @@ void renderScene(bool depth,Shader shader, Terrain terrain, Skybox skybox, Water
 		obj->draw();
 
 	}
-}
-
-// renderQuad() renders a 1x1 XY quad in NDC
-// -----------------------------------------
-unsigned int quadVAO = 0;
-unsigned int quadVBO;
-void renderQuad()
-{
-    if (quadVAO == 0)
-    {
-        float quadVertices[] = {
-            // positions        // texture Coords
-            -1.0f,  50.0f, 0.0f, 0.0f, 1.0f,
-            -1.0f, 48.0f, 0.0f, 0.0f, 0.0f,
-             1.0f,  50.0f, 0.0f, 1.0f, 1.0f,
-             1.0f, 48.0f, 0.0f, 1.0f, 0.0f,
-        };
-        // setup plane VAO
-        glGenVertexArrays(1, &quadVAO);
-        glGenBuffers(1, &quadVBO);
-        glBindVertexArray(quadVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    }
-    glBindVertexArray(quadVAO);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    glBindVertexArray(0);
 }
