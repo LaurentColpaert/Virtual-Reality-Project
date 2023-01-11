@@ -7,7 +7,6 @@ in vec3 v_frag_coord;
 in vec3 v_normal;
 in vec4 frag_pos_lightspace;
 
-uniform vec3 u_view_pos;
 struct Light{
     vec3 light_pos;
     float ambient_strength;
@@ -19,6 +18,7 @@ struct Light{
 };
 
 uniform Light light;
+uniform vec3 u_view_pos;
 uniform float shininess;
 uniform vec3 materialColour;
 uniform sampler2D shadowMap;

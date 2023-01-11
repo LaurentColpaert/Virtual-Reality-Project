@@ -38,7 +38,7 @@ public:
         solver = new btSequentialImpulseConstraintSolver;
         dynamics_world = new btDiscreteDynamicsWorld(dispatcher, broadphase_interface, solver, collision_configuration);
         
-        dynamics_world->setGravity(btVector3(0, -1, 0));
+        dynamics_world->setGravity(btVector3(0, -9.8, 0));
     }
     
     
