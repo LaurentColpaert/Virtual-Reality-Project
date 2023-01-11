@@ -38,8 +38,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit);
 void create_launch_sphere(Shader shader, Physic physic, Spirit spirit);
-void renderScene(bool depth,Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now);
-void renderQuad();
+void render_scene(Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now);
+void render_depth_scene(Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now);
 
 int speed = 1;
 float degree_rotation = 2.0;
@@ -107,25 +107,26 @@ int main(int argc, char* argv[])
 #ifndef NDEBUG
 	call_debug();
 #endif
+	Physic physic = Physic();
 
 	Shader simple_shader(PATH_TO_SHADER "/simple.vs", PATH_TO_SHADER "/simple.fs");
 	Shader depth_shader(PATH_TO_SHADER "/depth/depth.vs", PATH_TO_SHADER "/depth/depth.fs");
 	Shader debugDepthQuad(PATH_TO_SHADER "/depth/debug_depth.vs", PATH_TO_SHADER "/depth/debug_depth.fs");
 
+	
+	Terrain terrain = Terrain();
 	Skybox skybox = Skybox();
 
-	Terrain terrain = Terrain();
+
 	// physic.addTerrainToWorld(terrain);
 	Water water = Water(1000,1.0, 37.0);	
-	Physic physic = Physic();
-
-	Spirit spirit = Spirit(glm::vec3(1,50,1));
-	// spirit.getObject()->transform.setRotation(glm::vec3(cos(90),0,0));
-	physic.addSpirit(&spirit);
 
 	Ground ground = Ground();
 	physic.addGround(&ground);
 
+	Spirit spirit = Spirit(glm::vec3(1,50,1));
+	// spirit.getObject()->transform.setRotation(glm::vec3(cos(90),0,0));
+	physic.addSpirit(&spirit);
 
 	Object sphere = Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 	sphere.makeObject(simple_shader);
@@ -175,7 +176,7 @@ int main(int argc, char* argv[])
 	debugDepthQuad.use();
 	debugDepthQuad.setInteger("depthMap", 6);
 
-	glm::vec3 light_pos = glm::vec3(0.0, 46.0, -1.0);
+	glm::vec3 light_pos = glm::vec3(-5.0, 60.0, -10.0);
 	
 	simple_shader.use();
 	simple_shader.setFloat("shininess", 40.0f);
@@ -204,50 +205,42 @@ int main(int argc, char* argv[])
 		glfwPollEvents();
 		double now = glfwGetTime();
 		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-		// physic.update();
+		physic.update();
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		
         float near_plane = 1.0f, far_plane = 7.5f;
         glm::mat4 P = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
         glm::mat4 V = glm::lookAt(light_pos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
 		glm::mat4 lightspace = P*V;
         // render scene from light's point of view
         depth_shader.use();
-        depth_shader.setMatrix4("P", P);
-        depth_shader.setMatrix4("V", V);
+        depth_shader.setMatrix4("lightSpaceMatrix§", lightspace);
 
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		renderScene(true,depth_shader, terrain, skybox, water, spirit, ground, light_pos, sphere,now);
+		render_depth_scene(depth_shader, terrain, skybox, water, spirit, ground, light_pos, sphere,now);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // reset viewport
         glViewport(0, 0, src_width, src_width);
-		
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-
 		simple_shader.use();
 		simple_shader.setMatrix4("lightspace",lightspace);
 		glActiveTexture(GL_TEXTURE0+6);
         glBindTexture(GL_TEXTURE_2D, depthMap);
 
-		renderScene(false,simple_shader, terrain, skybox, water, spirit, ground, light_pos, sphere,now);
-
+		render_scene(simple_shader,terrain, skybox, water, spirit, ground, light_pos, sphere,now);
 
 		// render Depth map to quad for visual debugging
         // ---------------------------------------------
         debugDepthQuad.use();
         debugDepthQuad.setFloat("near_plane", near_plane);
         debugDepthQuad.setFloat("far_plane", far_plane);
-        // renderQuad();
 		debugDepthQuad.setMatrix4("M", plane_test.transform.model);
 		debugDepthQuad.setMatrix4("itM", glm::inverseTranspose(plane_test.transform.model));
-		debugDepthQuad.setMatrix4("V", camera->GetViewMatrix());
-		debugDepthQuad.setMatrix4("P", camera->GetProjectionMatrix());
 		plane_test.draw();
 
 		fps.display(now);
@@ -364,19 +357,16 @@ void create_launch_sphere(Shader shader, Physic physic, Spirit spirit){
 	launched_spheres.push_back(sphere);
 }
 
-void renderScene(bool depth,Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now){
+void render_scene(Shader shader,Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now){
 	glm::vec3 materialColour = glm::vec3(0.17,0.68,0.89);	
 
 	terrain.draw(*camera,src_width,src_height);
-	// skybox.set();
-	water.draw(*camera,materialColour,light_pos,now);
-
 	skybox.draw(*camera);
+	
+	water.draw(*camera,materialColour,light_pos,now, skybox.getSkyTexture());
+
 	spirit.draw(camera);
-
-
-	if (depth)	ground.draw(camera,shader);
-	else ground.draw(camera);
+	ground.draw(camera);
 
 	// simple_shader.use();
 	// simple_shader.setVector3f("u_view_pos", camera->Position);
@@ -388,6 +378,7 @@ void renderScene(bool depth,Shader shader, Terrain terrain, Skybox skybox, Water
 	// plane_test.draw();
 
 	shader.use();
+	sphere.makeObject(shader,false);
 	shader.setMatrix4("M", sphere.transform.model);
 	shader.setMatrix4("itM", glm::inverseTranspose(sphere.transform.model));
 	shader.setVector3f("materialColour", materialColour);
@@ -397,6 +388,7 @@ void renderScene(bool depth,Shader shader, Terrain terrain, Skybox skybox, Water
 
 	for(int i = 0; i < nb_cubes; i++){
 		Object * obj = cubes[i];
+		obj->makeObject(shader,false);
 		shader.setMatrix4("M", obj->transform.model);
 		shader.setMatrix4("itM", glm::inverseTranspose(obj->transform.model));
 		shader.setVector3f("materialColour", materialColour);
@@ -407,6 +399,7 @@ void renderScene(bool depth,Shader shader, Terrain terrain, Skybox skybox, Water
 
 	for(int i = 0; i < launched_spheres.size(); i++){
 		Object * obj = launched_spheres[i];
+		obj->makeObject(shader,false);
 		shader.setMatrix4("M", obj->transform.model);
 		shader.setMatrix4("itM", glm::inverseTranspose(obj->transform.model));
 		shader.setVector3f("materialColour", materialColour);
@@ -415,4 +408,43 @@ void renderScene(bool depth,Shader shader, Terrain terrain, Skybox skybox, Water
 		obj->draw();
 
 	}
+}
+
+void render_depth_scene(Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now){
+	glm::vec3 materialColour = glm::vec3(0.17,0.68,0.89);	
+
+	// terrain.draw(*camera,src_width,src_height);
+	// water.draw(*camera,materialColour,light_pos,now);
+
+	spirit.draw_depth(camera, shader);
+	ground.draw_depth(camera, shader);
+
+	// simple_shader.use();
+	// simple_shader.setVector3f("u_view_pos", camera->Position);
+	// simple_shader.setMatrix4("M", plane_test.transform.model);
+	// simple_shader.setMatrix4("itM", glm::inverseTranspose(plane_test.transform.model));
+	// simple_shader.setVector3f("materialColour", glm::vec3(0.56,0.24,0.12));
+	// simple_shader.setMatrix4("V", camera->GetViewMatrix());
+	// simple_shader.setMatrix4("P", camera->GetProjectionMatrix());
+	// plane_test.draw();
+
+	shader.use();
+	sphere.makeObject(shader,false);
+	shader.setMatrix4("M", sphere.transform.model);
+	sphere.draw();
+
+	for(int i = 0; i < nb_cubes; i++){
+		Object * obj = cubes[i];
+		obj->makeObject(shader,false);
+		shader.setMatrix4("M", obj->transform.model);
+		obj->draw();
+	}
+
+	for(int i = 0; i < launched_spheres.size(); i++){
+		Object * obj = launched_spheres[i];
+		obj->makeObject(shader,false);
+		shader.setMatrix4("M", obj->transform.model);
+		obj->draw();
+	}
+
 }

@@ -39,7 +39,6 @@ void main() {
     float distance = length(light.light_pos - v_frag_coord);
     float attenuation = pow((light.constant + light.linear * distance + light.quadratic * distance * distance),-1);
     float light = light.ambient_strength + attenuation * (diffuse + specular);
-    vec4 color = 
     // FragColor = vec4(color.xyz * light, 1.0);
     FragColor =  texture(my_texture, v_tex); 
 }

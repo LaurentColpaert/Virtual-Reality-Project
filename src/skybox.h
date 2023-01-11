@@ -41,11 +41,12 @@ public:
         for (std::pair<std::string, GLenum> pair : facesToLoad) {
             loadCubemapFace(pair.first.c_str(), pair.second);
         }  
-    }
-
-    void set(){
         glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP,sky_texture);
+    }
+
+    GLuint getSkyTexture(){
+        return sky_texture; 
     }
     
     void draw(Camera camera){
@@ -54,12 +55,13 @@ public:
         */
         glDepthFunc(GL_LEQUAL);
 		skybox_shader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, sky_texture);
+		skybox_shader.setInteger("cubemapTexture", 0);
 		skybox_shader.setMatrix4("V", camera.GetViewMatrix());
 		skybox_shader.setMatrix4("P", camera.GetProjectionMatrix());
 		
 		//Activate and bind the texture for the cubemap
-		skybox_shader.setInteger("cubemapTexture", 0);
-		
 		skybox_cube.draw();
 		glDepthFunc(GL_LESS);
     }
@@ -71,6 +73,8 @@ private:
         unsigned char* data = stbi_load(path, &imWidth, &imHeight, &imNrChannels, 0);
         if (data)
         {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, sky_texture);
             //Send the image to the the buffer
             glTexImage2D(targetFace, 0, GL_RGB, imWidth, imHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         }

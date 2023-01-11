@@ -34,7 +34,7 @@ public:
         terrain_obj = new Object();
         // Load the image of the mipmaps
         glGenTextures(1, &texture);
-        glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(GL_TEXTURE0+4);
         glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
         
          // load image, create texture and generate mipmaps
@@ -46,7 +46,6 @@ public:
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
             glGenerateMipmap(GL_TEXTURE_2D);
 
-            tessHeightMapShader.setInteger("heightMap", 0);
             std::cout << "Loaded heightmap of size " << height << " x " << width << std::endl;
             // Iterate through the image data and populate the heightfieldData array
             heightData = (short int *) malloc(height*width*2);
@@ -118,12 +117,14 @@ public:
 
     void draw(Camera camera,float width,float height){
         tessHeightMapShader.use();
+        glActiveTexture(GL_TEXTURE0+4);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        tessHeightMapShader.setInteger("heightMap", 4);
         tessHeightMapShader.setMatrix4("projection",camera.GetProjectionMatrix());
         tessHeightMapShader.setMatrix4("view", camera.GetViewMatrix());
         tessHeightMapShader.setMatrix4("model", glm::mat4(1.0f));
 
         // render the terrain
-        glBindTexture(GL_TEXTURE_2D, texture);
         glBindVertexArray(terrainVAO);
         glDrawArrays(GL_PATCHES, 0, NUM_PATCH_PTS*rez*rez);
     }

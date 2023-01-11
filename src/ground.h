@@ -33,7 +33,11 @@ public:
 
     void setup_ground_shader(glm::vec3 light_pos){
         shader.use();
+        // glActiveTexture(GL_TEXTURE0+2);
+        // glBindTexture(GL_TEXTURE_2D, diffuseMap);
         shader.setInteger("diffuseMap", 2);
+        // glActiveTexture(GL_TEXTURE0+3);
+        // glBindTexture(GL_TEXTURE_2D, normalMap);
         shader.setInteger("normalMap", 3);
         // shader.setFloat("shininess", 40.0f);
         // shader.setFloat("light.ambient_strength", 1.0);
@@ -48,20 +52,22 @@ public:
 
     void draw(Camera* camera){
         shader.use();
-        shader.setInteger("diffuseMap", 2);
-        shader.setInteger("normalMap", 3);
+        // glActiveTexture(GL_TEXTURE0+2);
+        // glBindTexture(GL_TEXTURE_2D, diffuseMap);
+        // shader.setInteger("diffuseMap", 2);
+        // glActiveTexture(GL_TEXTURE0+3);
+        // glBindTexture(GL_TEXTURE_2D, normalMap);
+        // shader.setInteger("normalMap", 3);
 		shader.setVector3f("viewPos", camera->Position);
 		shader.setMatrix4("M", ground->transform.model);
 		shader.setMatrix4("V", camera->GetViewMatrix());
 		shader.setMatrix4("P", camera->GetProjectionMatrix());
 		ground->draw();
     }  
-    void draw(Camera* camera,Shader shader){
+
+    void draw_depth(Camera* camera,Shader shader){
         shader.use();
-		shader.setVector3f("viewPos", camera->Position);
 		shader.setMatrix4("M", ground->transform.model);
-		shader.setMatrix4("V", camera->GetViewMatrix());
-		shader.setMatrix4("P", camera->GetProjectionMatrix());
 		ground->draw();
     }  
 

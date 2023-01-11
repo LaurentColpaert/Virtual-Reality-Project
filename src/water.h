@@ -29,11 +29,15 @@ public:
         water_shader.setFloat("light.constant", 1.4);
         water_shader.setFloat("light.linear", 0.9);
         water_shader.setFloat("light.quadratic", 0.0);
+        
     }
 
 
-    void draw(Camera camera, glm::vec3 materialColour, glm::vec3 light_pos, double now ){
+    void draw(Camera camera, glm::vec3 materialColour, glm::vec3 light_pos, double now, GLuint sky_texture){
         water_shader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, sky_texture);
+        water_shader.setInteger("cubemapTexture", 0);
         water_shader.setMatrix4("M", plane.transform.model);
         water_shader.setMatrix4("itM", glm::inverseTranspose(plane.transform.model));
         water_shader.setVector3f("materialColour", materialColour);
