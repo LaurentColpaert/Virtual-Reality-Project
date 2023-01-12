@@ -43,5 +43,5 @@ void main()
         
     gl_Position = P*V*M*vec4(aPos, 1.0);
     
-    //frag_pos_lightspace = lightspace * frag_coord;
+    frag_pos_lightspace = lightspace * frag_coord;
 }

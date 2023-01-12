@@ -82,5 +82,10 @@ public:
         glm::vec3 forward = rotMat * glm::vec3(0, 0, 1);
         return glm::normalize(forward);
     }
+
+    bool is_below_level(float level){
+        if (model[3][1] < level) return true;
+        return false;
+    }
 };
 #endif
