@@ -30,8 +30,7 @@ float specularCalculation(vec3 N, vec3 L, vec3 V ){
     return light.specular_strength * spec;
 }
 
-float ShadowCalculation(vec4 fragPosLightSpace)
-{
+float ShadowCalculation(vec4 fragPosLightSpace){
     // perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // transform to [0,1] range
@@ -65,6 +64,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
         
     return shadow;
 }
+
 void main() {
     vec3 N = normalize(v_normal);
     vec3 L = normalize(light.light_pos - v_frag_coord);

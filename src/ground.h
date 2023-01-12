@@ -22,7 +22,8 @@ public:
         ground->numVertices = 6;    
         ground->makeGround(shader);
         ground->transform.setTranslation(glm::vec3(0.0,40.0,0.0));
-        ground->transform.setScale(glm::vec3(100.0,1.0,100.0));
+        ground->transform.setScale(glm::vec3(10.0,1.0,10.0));
+        // ground->transform.setScale(glm::vec3(100.0,1.0,100.0));
         ground->transform.updateModelMatrix();
 
         diffuseMap = loadTexture(PATH_TO_TEXTURE "/brickwall.jpg",2);
@@ -33,11 +34,8 @@ public:
 
     void setup_ground_shader(glm::vec3 light_pos){
         shader.use();
-        // glActiveTexture(GL_TEXTURE0+2);
-        // glBindTexture(GL_TEXTURE_2D, diffuseMap);
+        shader.setInteger("shadowMap",6);
         shader.setInteger("diffuseMap", 2);
-        // glActiveTexture(GL_TEXTURE0+3);
-        // glBindTexture(GL_TEXTURE_2D, normalMap);
         shader.setInteger("normalMap", 3);
         // shader.setFloat("shininess", 40.0f);
         // shader.setFloat("light.ambient_strength", 1.0);
@@ -49,6 +47,13 @@ public:
         // shader.setVector3f("light.light_pos",light_pos);
         shader.setVector3f("lightPos",light_pos);
     }
+
+    void set_lightspace(glm::mat4 lightspace){
+        shader.use();
+        shader.setMatrix4("lightspace",lightspace);
+    }
+
+
 
     void draw(Camera* camera){
         shader.use();
@@ -77,6 +82,10 @@ public:
 
     btRigidBody* getRigidBody(){
         return this->rigid_body;
+    }
+
+    Shader getShader(){
+        return shader;
     }
 
 private:
