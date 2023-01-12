@@ -7,6 +7,13 @@ in vec3 v_frag_coord;
 in vec3 v_normal;
 in vec4 frag_pos_lightspace;
 
+struct DirLight{
+    vec3 direction;
+    float ambient;
+    float diffuse;
+    float specular;
+};
+
 struct Light{
     vec3 light_pos;
     float ambient_strength;
@@ -18,15 +25,16 @@ struct Light{
 };
 
 uniform Light light;
+uniform DirLight dir_light;
 uniform vec3 u_view_pos;
 uniform float shininess;
 uniform vec3 materialColour;
 uniform sampler2D shadowMap;
 
-float specularCalculation(vec3 N, vec3 L, vec3 V ){
+float specularCalculation(vec3 N, vec3 L, vec3 V){
     vec3 R = reflect (-L,N);
     float cosTheta = dot(R , V);
-    float spec = pow(max(cosTheta,0.0), 32.0);
+    float spec = pow(max(cosTheta,0.0), shininess);
     return light.specular_strength * spec;
 }
 
@@ -69,11 +77,25 @@ void main() {
     vec3 N = normalize(v_normal);
     vec3 L = normalize(light.light_pos - v_frag_coord);
     vec3 V = normalize(u_view_pos - v_frag_coord);
+    float shadow = ShadowCalculation(frag_pos_lightspace);
+
+    //SpotLight
     float specular = specularCalculation( N, L, V);
     float diffuse = light.diffuse_strength * max(dot(N,L),0.0);
     float distance = length(light.light_pos - v_frag_coord);
     float attenuation = pow((light.constant + light.linear * distance + light.quadratic * distance * distance),-1);
-    float shadow = ShadowCalculation(frag_pos_lightspace);
-    float light = light.ambient_strength + (1.0 - shadow) * attenuation * (diffuse + specular);
-    FragColor = vec4(materialColour * vec3(light), 1.0);
+    float light = light.ambient_strength +  attenuation * (diffuse + specular);
+
+    //Directional light
+    vec3 norm = normalize(v_normal);
+    vec3 lightDir = normalize(dir_light.direction);  
+    float diff = max(dot(norm, lightDir), 0.0);
+    float dir_diffuse = dir_light.diffuse * diff;  
+    vec3 viewDir = normalize(u_view_pos - v_frag_coord);
+    vec3 reflectDir = reflect(-lightDir, norm);  
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+    float dir_specular = dir_light.specular * spec ;  
+    float dir_light = dir_light.ambient +  (dir_diffuse + dir_specular);
+
+    FragColor = vec4(materialColour * vec3(light + 0.5*dir_light), 1.0);
 }

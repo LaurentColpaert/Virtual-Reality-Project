@@ -107,7 +107,6 @@ int main(int argc, char* argv[])
 	call_debug();
 #endif
 	Physic physic = Physic();
-
 	Shader simple_shader(PATH_TO_SHADER "/simple.vs", PATH_TO_SHADER "/simple.fs");
 	Shader depth_shader(PATH_TO_SHADER "/depth/depth.vs", PATH_TO_SHADER "/depth/depth.fs");
 	Shader debugDepthQuad(PATH_TO_SHADER "/depth/debug_depth.vs", PATH_TO_SHADER "/depth/debug_depth.fs");
@@ -144,12 +143,6 @@ int main(int argc, char* argv[])
 			cubes.push_back(cube);
 		}
 	}
-	Object* cube = new Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
-	cube->makeObject(simple_shader);
-	cube->transform.setTranslation(glm::vec3(11 ,45.0,11));
-	cube->transform.updateModelMatrix(cube->transform.model);
-	physic.addSphere(cube);
-	cubes.push_back(cube);
 
 	//Shadow  depth map
 	const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
@@ -173,7 +166,8 @@ int main(int argc, char* argv[])
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	glm::vec3 light_pos = glm::vec3(-15.0, 60.0, 15.0);
+	glm::vec3 light_dir = glm::vec3(-30.0, 60.0, 30.0);
+	glm::vec3 light_pos = glm::vec3(0.0, 43.0, 0.0);
 	
 	debugDepthQuad.use();
 	debugDepthQuad.setInteger("depthMap", 6);
@@ -187,6 +181,10 @@ int main(int argc, char* argv[])
 	simple_shader.setFloat("light.linear", 0.7);
 	simple_shader.setFloat("light.quadratic", 0.0);
 	simple_shader.setVector3f("light.light_pos",light_pos);
+	simple_shader.setVector3f("dir_light.direction",light_dir);
+	simple_shader.setFloat("dir_light.ambient", 0.0f);
+	simple_shader.setFloat("dir_light.diffuse", 0.6f);
+	simple_shader.setFloat("dir_light.specular", 0.3f);
 	simple_shader.setInteger("shadowMap", 6);
 
 	float ambient = 0.2;
@@ -207,14 +205,13 @@ int main(int argc, char* argv[])
 		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 		auto delta = light_pos + glm::vec3(std::cos(now),0.0,2 * std::sin(now));
 
-
 		physic.update();
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        float near_plane = -5.0f, far_plane = 30.0f;
+        float near_plane = -5.0f, far_plane = 50.0f;
         glm::mat4 P = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, near_plane, far_plane);
-        glm::mat4 V = glm::lookAt(delta, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+        glm::mat4 V = glm::lookAt(light_dir, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
 		glm::mat4 lightspace = P*V;
 
         // render scene from light's point of view
@@ -232,6 +229,7 @@ int main(int argc, char* argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		simple_shader.use();
+		simple_shader.setVector3f("light.light_pos",delta);
 		simple_shader.setMatrix4("lightspace",lightspace);
 		glActiveTexture(GL_TEXTURE0+6);
         glBindTexture(GL_TEXTURE_2D, depthMap);
@@ -239,7 +237,6 @@ int main(int argc, char* argv[])
 		render_scene(simple_shader,terrain, skybox, water, spirit, ground, delta, sphere,now,lightspace);
 
 		// render Depth map to quad for visual debugging
-        // ---------------------------------------------
         debugDepthQuad.use();
         debugDepthQuad.setFloat("near_plane", near_plane);
         debugDepthQuad.setFloat("far_plane", far_plane);

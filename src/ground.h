@@ -126,11 +126,11 @@ private:
     }
 
     void set_rigid_body(){
-        btCollisionShape* groundShape = new btBoxShape(btVector3(ground->transform.scale.x, 0, ground->transform.scale.z));
+        btCollisionShape* groundShape = new btBoxShape(btVector3(ground->transform.scale.x, 1.0, ground->transform.scale.z));
 
         btTransform transform;
         transform.setIdentity();
-        transform.setOrigin(btVector3(0, ground->transform.translation.y, 0));
+        transform.setOrigin(btVector3(0, ground->transform.translation.y-1.0, 0));
 
         btScalar mass(0);
 
