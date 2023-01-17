@@ -17,6 +17,8 @@ public:
     btBroadphaseInterface* broadphase_interface;
     btSequentialImpulseConstraintSolver* solver;
 
+    Spirit* spirit;
+
     std::vector<Object*> objects;
 
     float size_x = 0.175;
@@ -42,7 +44,9 @@ public:
     }
     
     
-    
+    void setSpirit(Spirit* spi){
+        spirit = spi;
+    }
     void addSphere(Object *obj){
         btCollisionShape* shape = new btSphereShape(1.0f); // radius of 1.0
         // Create a motion state for the sphere
@@ -149,6 +153,7 @@ public:
     }
 
     void update(){
+        bool spirit_updated = false;
         dynamics_world->stepSimulation(1.f / 60.f, 1);
         for (int i = 0; i < dynamics_world->getNumCollisionObjects(); i++)
         {
@@ -175,11 +180,36 @@ public:
                 // Retrieve the object associated with the rigid body
                 Object* object = static_cast<Object*>(body->getUserPointer());
 
+                if (object->name == "ground") continue;
+                if (object->name == "spirit") {
+                    gl_position.y -= 1;
+                    spirit_updated = true;
+                }
                 object->transform.setTranslation(gl_position);
                 object->transform.setRotation(glm::eulerAngles(gl_orientation));
 
                 object->transform.updateModelMatrix();
             }
+        }
+        if (spirit_updated){
+            btTransform transform;
+            spirit->getRigidBody()->getMotionState()->getWorldTransform(transform);
+
+            // Extract the position, orientation, and scale of the object
+            btVector3 position = transform.getOrigin();
+            btQuaternion orientation = transform.getRotation();
+
+            // Convert the position, orientation, and scale to glm types
+            glm::vec3 gl_position(position.x(), position.y(), position.z());
+            glm::quat gl_orientation(orientation.w(), orientation.x(), orientation.y(), orientation.z());
+
+            // Retrieve the object associated with the rigid body
+            gl_position.y -= 1;
+            spirit->getObject()->transform.setTranslation(gl_position);
+            spirit->getObject()->transform.setRotation(glm::eulerAngles(gl_orientation));
+
+            spirit->getObject()->transform.updateModelMatrix();
+            spirit_updated = false;
         }
     }
 };

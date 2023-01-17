@@ -144,7 +144,7 @@ public:
         float rColor = 0.5f + ((rand() % 100) / 100.0f);
         particle.Position = object->transform.getWorldTranslation()+glm::vec3(-0.5,2,0);
         particle.Color = glm::vec4(rColor, rColor, rColor, 1.0f);
-        particle.Life = 1.0f;
+        particle.Life = 3.0f;
         if (rand() % 100 < 50){
             particle.Velocity = glm::vec3(0.2,0.4,-0.2) * random ;
         }

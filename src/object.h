@@ -43,6 +43,8 @@ public:
 	std::vector<glm::vec3> normals;
 	std::vector<Vertex> vertices;
 
+	std::string name = "";
+
 	int numVertices;
 
 	GLuint VBO, VAO;
@@ -244,10 +246,10 @@ public:
 
 	void makeGround(Shader shader){
 		// positions
-		glm::vec3 pos1(-1.0f, 0.0f, 1.0f);
-		glm::vec3 pos2(-1.0f, 0.0f,-1.0f);
-		glm::vec3 pos3( 1.0f, 0.0f,-1.0f);
-		glm::vec3 pos4( 1.0f, 0.0f, 1.0f);
+		glm::vec3 pos1(-1.0f, 1.0f, 1.0f);
+		glm::vec3 pos2(-1.0f, 1.0f,-1.0f);
+		glm::vec3 pos3( 1.0f, 1.0f,-1.0f);
+		glm::vec3 pos4( 1.0f, 1.0f, 1.0f);
 		// texture coordinates
 		glm::vec2 uv1(0.0f, 1.0f);
 		glm::vec2 uv2(0.0f, 0.0f);
@@ -338,6 +340,10 @@ public:
 	void draw() {
 		glBindVertexArray(this->VAO);
 		glDrawArrays(GL_TRIANGLES, 0, numVertices);
+	}
+
+	void setName(std::string name){
+		this->name=name;
 	}
 };
 #endif

@@ -119,6 +119,7 @@ int main(int argc, char* argv[])
 	Water water = Water(1000,1.0, 37.0);	
 	Ground ground = Ground();
 	Spirit spirit = Spirit(glm::vec3(1,50,1));
+	physic.setSpirit(&spirit);
 	ParticleGenerator* particle = new ParticleGenerator(200,&spirit,camera);
 
 	physic.addGround(&ground);
@@ -404,14 +405,21 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 
 		transform.setRotation(q * rotation);
 		spirit.getRigidBody()->setWorldTransform(transform);
+		spirit.getRigidBody()->getMotionState()->getWorldTransform(transform);
+		btQuaternion orientation = transform.getRotation();
+		glm::quat gl_orientation(orientation.w(), orientation.x(), orientation.y(), orientation.z());
+		spirit.getObject()->transform.setRotation(glm::eulerAngles(gl_orientation));
+		spirit.getObject()->transform.updateModelMatrix();
 	}
 	if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS){//backward
+		glm::vec3 dir = spirit.getObject()->transform.get_forward();
+		btVector3 bt_dir = btVector3(dir.x,dir.y,dir.z);
 		btTransform xform = spirit.getRigidBody()->getWorldTransform();
 		btVector3 cur = spirit.getRigidBody()->getLinearVelocity();
 		btVector3 basis = xform.getBasis()[2];
-		btVector3 vel = -speed * 2 * basis;
+		btVector3 vel = speed * 2 * bt_dir;
 		spirit.getRigidBody()->activate(true);
-		spirit.getRigidBody()->setLinearVelocity(btVector3(vel[0], cur[1], vel[2]));
+		spirit.getRigidBody()->setLinearVelocity(btVector3(-vel[0], cur[1], -vel[2]));
 	}
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS){ //turn right
 		btTransform transform = spirit.getRigidBody()->getWorldTransform();
@@ -422,6 +430,15 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 
 		transform.setRotation(q * rotation);
 		spirit.getRigidBody()->setWorldTransform(transform);
+		spirit.getRigidBody()->getMotionState()->getWorldTransform(transform);
+		btQuaternion orientation = transform.getRotation();
+		glm::quat gl_orientation(orientation.w(), orientation.x(), orientation.y(), orientation.z());
+		spirit.getObject()->transform.setRotation(glm::eulerAngles(gl_orientation));
+		spirit.getObject()->transform.updateModelMatrix();
+	}
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){ 
+		spirit.getRigidBody()->setLinearVelocity(btVector3(0.0,0.0,0.0));
+		spirit.getRigidBody()->setAngularVelocity(btVector3(0.0,0.0,0.0));
 	}
 	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS){
 		if (!sphere_launched){

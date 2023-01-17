@@ -23,6 +23,7 @@ public:
         
         spirit_texture = loadTexture(PATH_TO_TEXTURE "/spirit_uv.jpg",1);
         // load_texture();
+        spirit->setName("spirit");
         set_rigid_body();
     }
 
@@ -93,7 +94,7 @@ public:
 private:
 
     void set_rigid_body(){
-        btCollisionShape* shape = new btBoxShape(btVector3(1,0.5,1));
+        btCollisionShape* shape = new btSphereShape(1);
         // Create a motion state for the cube
         btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(spirit->transform.translation.x,spirit->transform.translation.y, spirit->transform.translation.z))); 
 
@@ -106,8 +107,9 @@ private:
         btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, shape, inertia);
         rigid_body = new btRigidBody(rbInfo);
         rigid_body->setAngularFactor(btVector3(0,0,1));
-        rigid_body->setFriction(0.0f);
+        // rigid_body->setFriction(0.0f);
+        rigid_body->setRollingFriction(0.0);
+        rigid_body->setSpinningFriction(0.0);
     }
-
 };
 #endif

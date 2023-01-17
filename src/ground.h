@@ -27,6 +27,8 @@ public:
 
         diffuseMap = loadTexture(PATH_TO_TEXTURE "/brickwall.jpg",2);
         normalMap  = loadTexture(PATH_TO_TEXTURE "/brickwall_normal.jpg",3);
+        
+        ground->setName("ground");
                 
         set_rigid_body();
     }
@@ -130,14 +132,15 @@ private:
 
         btTransform transform;
         transform.setIdentity();
-        transform.setOrigin(btVector3(0, ground->transform.translation.y-1.0, 0));
+        transform.setOrigin(btVector3(0, ground->transform.translation.y, 0));
 
         btScalar mass(0);
 
         btDefaultMotionState* motion_state = new btDefaultMotionState(transform);
         btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motion_state, groundShape, btVector3(0,0,0));
         rigid_body = new btRigidBody(rbInfo);
-        // rigid_body->setFriction(0.0f);
+        rigid_body->setCollisionFlags(rigid_body->getCollisionFlags() | btCollisionObject::CF_STATIC_OBJECT);
+        rigid_body->setFriction(0.0f);
     }
 };
 #endif
