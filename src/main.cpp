@@ -30,6 +30,7 @@
 #include "./ground.h"
 #include "./spirit.h"
 #include "./physic.h"
+#include "./particles.h"
 #include "./utils/debug.h"
 #include "./utils/callbacks.h"
 #include "./utils/fps.h"
@@ -37,9 +38,9 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit);
-void create_launch_sphere(Shader shader, Physic physic, Spirit spirit);
-void render_scene(Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now,glm::mat4 lightspace);
+void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit, ParticleGenerator* particle);
+Object* create_launch_sphere(Shader shader, Physic physic, Spirit spirit);
+void render_scene(Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now,glm::mat4 lightspace,ParticleGenerator particle);
 void render_depth_scene(Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now);
 
 int speed = 1;
@@ -90,6 +91,7 @@ int main(int argc, char* argv[])
 	glViewport(0,0,src_width,src_height);
 	
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);  
 	glPatchParameteri(GL_PATCH_VERTICES,4);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);	// set texture wrapping to GL_REPEAT (default wrapping method)
@@ -107,6 +109,7 @@ int main(int argc, char* argv[])
 	call_debug();
 #endif
 	Physic physic = Physic();
+
 	Shader simple_shader(PATH_TO_SHADER "/simple.vs", PATH_TO_SHADER "/simple.fs");
 	Shader depth_shader(PATH_TO_SHADER "/depth/depth.vs", PATH_TO_SHADER "/depth/depth.fs");
 	Shader debugDepthQuad(PATH_TO_SHADER "/depth/debug_depth.vs", PATH_TO_SHADER "/depth/debug_depth.fs");
@@ -116,7 +119,8 @@ int main(int argc, char* argv[])
 	Water water = Water(1000,1.0, 37.0);	
 	Ground ground = Ground();
 	Spirit spirit = Spirit(glm::vec3(1,50,1));
-	
+	ParticleGenerator* particle = new ParticleGenerator(200,&spirit,camera);
+
 	physic.addGround(&ground);
 	physic.addSpirit(&spirit);
 
@@ -199,14 +203,19 @@ int main(int argc, char* argv[])
 	
 	glfwSwapInterval(1);
 	while (!glfwWindowShouldClose(window)) {
-		processInput(window, simple_shader, physic, spirit);
+		//Setup
+		processInput(window, simple_shader, physic, spirit,particle);
 		glfwPollEvents();
 		double now = glfwGetTime();
+		double deltaTime = fps.display(now);
 		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 		auto delta = light_pos + glm::vec3(std::cos(now),0.0,2 * std::sin(now));
 
+		//Update
 		physic.update();
+		particle->Update((float)deltaTime,0,spirit.getObject());
 
+		//Depth pass
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         float near_plane = -5.0f, far_plane = 50.0f;
@@ -224,17 +233,17 @@ int main(int argc, char* argv[])
 		render_depth_scene(depth_shader, terrain, skybox, water, spirit, ground, delta, sphere,now);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        // reset viewport
+        // Color pass
         glViewport(0, 0, src_width, src_width);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		simple_shader.use();
 		simple_shader.setVector3f("light.light_pos",delta);
 		simple_shader.setMatrix4("lightspace",lightspace);
 		glActiveTexture(GL_TEXTURE0+6);
         glBindTexture(GL_TEXTURE_2D, depthMap);
 
-		render_scene(simple_shader,terrain, skybox, water, spirit, ground, delta, sphere,now,lightspace);
+		render_scene(simple_shader,terrain, skybox, water, spirit, ground, delta, sphere,now,lightspace,*particle);
+
 
 		// render Depth map to quad for visual debugging
         debugDepthQuad.use();
@@ -246,7 +255,9 @@ int main(int argc, char* argv[])
 		debugDepthQuad.setInteger("depthMap",6);
 		plane_test.draw();
 
-		fps.display(now);
+		//Draw the particle after the rest to be able to blend the color
+		particle->draw();
+		
 		glfwSwapBuffers(window);
 
 		//Delete the objects that falls bellow the water to avoid lagging
@@ -286,7 +297,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
 	camera->ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
-void create_launch_sphere(Shader shader, Physic physic, Spirit spirit){
+Object* create_launch_sphere(Shader shader, Physic physic, Spirit spirit){
 	Object* sphere = new  Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 	sphere->makeObject(shader);
 	glm::vec3 dir = spirit.getObject()->transform.get_forward();
@@ -295,9 +306,10 @@ void create_launch_sphere(Shader shader, Physic physic, Spirit spirit){
 	sphere->transform.updateModelMatrix(sphere->transform.model);
 	physic.launch_sphere(sphere, 2000, spirit);
 	launched_spheres.push_back(sphere);
+	return sphere;
 }
 
-void render_scene(Shader shader,Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now,glm::mat4 lightspace){
+void render_scene(Shader shader,Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now,glm::mat4 lightspace,ParticleGenerator particle){
 	glm::vec3 materialColour = glm::vec3(0.17,0.68,0.89);	
 
 	terrain.draw(*camera,src_width,src_height);
@@ -363,7 +375,7 @@ void render_depth_scene(Shader shader, Terrain terrain, Skybox skybox, Water wat
 }
 
 /**Handle the input of the keyboard and launch the corresponding function**/
-void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit){
+void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit, ParticleGenerator* particle){
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)		glfwSetWindowShouldClose(window, true);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)			camera->ProcessKeyboardMovement(LEFT, 0.1);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)		    camera->ProcessKeyboardMovement(RIGHT, 0.1);
@@ -413,12 +425,14 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 	}
 	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS){
 		if (!sphere_launched){
-			create_launch_sphere(shader,physic,spirit);
+			Object* sphere = create_launch_sphere(shader,physic,spirit);
+			particle->Update(0,50,sphere);
 			now = glfwGetTime();
 			sphere_launched = true;
 		}else{
 			if(glfwGetTime()- now > 1){
-				create_launch_sphere(shader,physic,spirit);
+				Object* sphere = create_launch_sphere(shader,physic,spirit);
+				particle->Update(0,50,spirit.getObject());
 				now = glfwGetTime();
 			}
 		}

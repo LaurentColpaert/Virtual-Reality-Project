@@ -22,7 +22,7 @@ public:
         ground->numVertices = 6;    
         ground->makeGround(shader);
         ground->transform.setTranslation(glm::vec3(0.0,40.0,0.0));
-        ground->transform.setScale(glm::vec3(10.0,1.0,10.0));
+        ground->transform.setScale(glm::vec3(100.0,1.0,100.0));
         ground->transform.updateModelMatrix();
 
         diffuseMap = loadTexture(PATH_TO_TEXTURE "/brickwall.jpg",2);

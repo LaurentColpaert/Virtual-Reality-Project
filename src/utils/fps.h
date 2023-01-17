@@ -28,7 +28,7 @@ public:
     }
 
     /** Compute the number of frame rate per second and display the result in the title **/
-    void display(double now) {
+    double display(double now) {
         double deltaTime = now - prev;
         deltaFrame++;
         if (deltaTime > 0.5) {
@@ -38,6 +38,7 @@ public:
             std::string title = "Project - " + std::to_string(fpsCount) + " fps";
             glfwSetWindowTitle(window,title.c_str());
         }
+        return deltaTime;
     }
 };
 #endif
