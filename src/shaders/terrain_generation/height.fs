@@ -15,11 +15,11 @@ void main()
     if( Height < 10)
         color = vec3(47,165,201)/nb_pixel;
     //Grass
-    else if(Height<40)
+    else if(Height<30)
         color = vec3(33, 152, 56)/nb_pixel;
-    else if(Height <55)
+    else if(Height <40)
         color = vec3(152, 115, 33)/nb_pixel;
     else
-        color = vec3(0, 0, 0)/nb_pixel;
+        color = vec3(255, 255, 255)/nb_pixel;
     FragColor = vec4(color*h, 1.0);
 }

@@ -57,7 +57,7 @@ std::vector<Object*> launched_spheres;
 double now;
 bool sphere_launched = false;
 
-Camera* camera = new Camera(glm::vec3(0, 50.0, -25));
+Camera* camera = new Camera(glm::vec3(0, 65.0, -25));
 
 int main(int argc, char* argv[])
 {
@@ -116,9 +116,9 @@ int main(int argc, char* argv[])
 	
 	Terrain terrain = Terrain();
 	Skybox skybox = Skybox();
-	Water water = Water(1000,1.0, 37.0);	
+	Water water = Water(1000,1.0, 45.0);	
 	Ground ground = Ground();
-	Spirit spirit = Spirit(glm::vec3(1,50,1));
+	Spirit spirit = Spirit(glm::vec3(1,60,1));
 	physic.setSpirit(&spirit);
 	ParticleGenerator* particle = new ParticleGenerator(200,&spirit,camera);
 
@@ -127,13 +127,13 @@ int main(int argc, char* argv[])
 
 	Object sphere = Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 	sphere.makeObject(simple_shader);
-	sphere.transform.setTranslation(glm::vec3(0,50,0));
+	sphere.transform.setTranslation(glm::vec3(0,60,0));
 	sphere.transform.updateModelMatrix(sphere.transform.model);
 	physic.addSphere(&sphere);
 
 	Object plane_test = Object(PATH_TO_OBJECTS "/plane.obj");
 	plane_test.makeObject(debugDepthQuad,true);
-	plane_test.transform.setTranslation(glm::vec3(0.0,45.0,15.0));
+	plane_test.transform.setTranslation(glm::vec3(0.0,55.0,15.0));
 	plane_test.transform.setScale(glm::vec3(5.0,0.0,5.0));
 	plane_test.transform.setRotation(glm::vec3(glm::radians(90.0),0.0,0.0));
 	plane_test.transform.updateModelMatrix(plane_test.transform.model);
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
 		for(int j =0; j <5; j++ ){
 			Object* cube = new Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 			cube->makeObject(simple_shader);
-			cube->transform.setTranslation(glm::vec3(i * 3 + j*1.5,45.0,i*2+j *3));
+			cube->transform.setTranslation(glm::vec3(i * 3 + j*1.5,60.0,i*2+j *3));
 			cube->transform.updateModelMatrix(cube->transform.model);
 			physic.addSphere(cube);
 			cubes.push_back(cube);
@@ -171,8 +171,8 @@ int main(int argc, char* argv[])
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	glm::vec3 light_dir = glm::vec3(-30.0, 60.0, 30.0);
-	glm::vec3 light_pos = glm::vec3(0.0, 43.0, 0.0);
+	glm::vec3 light_dir = glm::vec3(-30.0, 70.0, 30.0);
+	glm::vec3 light_pos = glm::vec3(0.0, 53.0, 0.0);
 	
 	debugDepthQuad.use();
 	debugDepthQuad.setInteger("depthMap", 6);

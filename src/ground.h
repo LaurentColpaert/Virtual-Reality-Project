@@ -21,12 +21,12 @@ public:
         ground = new Object();
         ground->numVertices = 6;    
         ground->makeGround(shader);
-        ground->transform.setTranslation(glm::vec3(0.0,40.0,0.0));
-        ground->transform.setScale(glm::vec3(100.0,1.0,100.0));
+        ground->transform.setTranslation(glm::vec3(0.0,50.0,0.0));
+        ground->transform.setScale(glm::vec3(50.0,1.0,50.0));
         ground->transform.updateModelMatrix();
 
-        diffuseMap = loadTexture(PATH_TO_TEXTURE "/brickwall.jpg",2);
-        normalMap  = loadTexture(PATH_TO_TEXTURE "/brickwall_normal.jpg",3);
+        diffuseMap = loadTexture(PATH_TO_TEXTURE "/ground/stone_basecolor.jpg",2);
+        normalMap  = loadTexture(PATH_TO_TEXTURE "/ground/stone_normal.jpg",3);
         
         ground->setName("ground");
                 
