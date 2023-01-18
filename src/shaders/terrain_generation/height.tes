@@ -12,6 +12,8 @@ in vec2 TextureCoord[];
 
 // send to Fragment Shader for coloring
 out float Height;
+out vec3 v_normal;
+out vec3 v_frag_coord;
 
 void main()
 {
@@ -57,4 +59,6 @@ void main()
     // ----------------------------------------------------------------------
     // output patch point position in clip space
     gl_Position = projection * view * model * p;
+    v_normal = normal.xyz;
+    v_frag_coord = gl_Position.xyz;
 }

@@ -40,7 +40,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit, ParticleGenerator* particle);
 Object* create_launch_sphere(Shader shader, Physic physic, Spirit spirit);
-void render_scene(Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now,glm::mat4 lightspace,ParticleGenerator particle);
+void render_scene(Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos,glm::vec3 light_dir, Object sphere, double now,glm::mat4 lightspace,ParticleGenerator particle);
 void render_depth_scene(Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now);
 
 int speed = 1;
@@ -179,6 +179,9 @@ int main(int argc, char* argv[])
 	
 	simple_shader.use();
 	simple_shader.setFloat("shininess", 40.0f);
+	// simple_shader.setFloat("light.ambient_strength", 0);
+	// simple_shader.setFloat("light.diffuse_strength", 0);
+	// simple_shader.setFloat("light.specular_strength", 0);
 	simple_shader.setFloat("light.ambient_strength", 0.2);
 	simple_shader.setFloat("light.diffuse_strength", 0.7);
 	simple_shader.setFloat("light.specular_strength", 0.9);
@@ -192,6 +195,9 @@ int main(int argc, char* argv[])
 	simple_shader.setFloat("dir_light.specular", 0.3f);
 	simple_shader.setInteger("shadowMap", 6);
 
+	// float ambient = 0;
+	// float diffuse = 0;
+	// float specular = 0;
 	float ambient = 0.2;
 	float diffuse = 0.6;
 	float specular = 1.0;
@@ -199,7 +205,7 @@ int main(int argc, char* argv[])
 	glm::vec3 materialColour = glm::vec3(0.17,0.68,0.89);	
 
 	water.setup_water_shader(ambient,diffuse,specular);
-	spirit.setup_spirit_shader(ambient,diffuse,specular,light_pos);
+	spirit.setup_spirit_shader(ambient,diffuse,specular,light_pos,light_dir);
 	ground.setup_ground_shader(light_pos);
 	
 	glfwSwapInterval(1);
@@ -243,18 +249,17 @@ int main(int argc, char* argv[])
 		glActiveTexture(GL_TEXTURE0+6);
         glBindTexture(GL_TEXTURE_2D, depthMap);
 
-		render_scene(simple_shader,terrain, skybox, water, spirit, ground, delta, sphere,now,lightspace,*particle);
-
+		render_scene(simple_shader,terrain, skybox, water, spirit, ground, delta,light_dir, sphere,now,lightspace,*particle);
 
 		// render Depth map to quad for visual debugging
-        debugDepthQuad.use();
-        debugDepthQuad.setFloat("near_plane", near_plane);
-        debugDepthQuad.setFloat("far_plane", far_plane);
-		debugDepthQuad.setMatrix4("M", plane_test.transform.model);
-		debugDepthQuad.setMatrix4("V", camera->GetViewMatrix());
-		debugDepthQuad.setMatrix4("P", camera->GetProjectionMatrix());
-		debugDepthQuad.setInteger("depthMap",6);
-		plane_test.draw();
+        // debugDepthQuad.use();
+        // debugDepthQuad.setFloat("near_plane", near_plane);
+        // debugDepthQuad.setFloat("far_plane", far_plane);
+		// debugDepthQuad.setMatrix4("M", plane_test.transform.model);
+		// debugDepthQuad.setMatrix4("V", camera->GetViewMatrix());
+		// debugDepthQuad.setMatrix4("P", camera->GetProjectionMatrix());
+		// debugDepthQuad.setInteger("depthMap",6);
+		// plane_test.draw();
 
 		//Draw the particle after the rest to be able to blend the color
 		particle->draw();
@@ -310,17 +315,17 @@ Object* create_launch_sphere(Shader shader, Physic physic, Spirit spirit){
 	return sphere;
 }
 
-void render_scene(Shader shader,Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now,glm::mat4 lightspace,ParticleGenerator particle){
+void render_scene(Shader shader,Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos,glm::vec3 light_dir, Object sphere, double now,glm::mat4 lightspace,ParticleGenerator particle){
 	glm::vec3 materialColour = glm::vec3(0.17,0.68,0.89);	
 
-	terrain.draw(*camera,src_width,src_height);
+	terrain.draw(*camera,light_dir);
 	skybox.draw(*camera);
 	
 	water.draw(*camera,materialColour,light_pos,now, skybox.getSkyTexture());
 
 	ground.set_lightspace(lightspace);
 	ground.draw(camera);
-	spirit.draw(camera);
+	spirit.draw(camera,light_pos);
 
 	shader.use();
 	shader.setVector3f("u_view_pos",camera->Position);

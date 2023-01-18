@@ -22,7 +22,7 @@ public:
         ground->numVertices = 6;    
         ground->makeGround(shader);
         ground->transform.setTranslation(glm::vec3(0.0,50.0,0.0));
-        ground->transform.setScale(glm::vec3(50.0,1.0,50.0));
+        ground->transform.setScale(glm::vec3(25.0,1.0,25.0));
         ground->transform.updateModelMatrix();
 
         diffuseMap = loadTexture(PATH_TO_TEXTURE "/ground/stone_basecolor.jpg",2);

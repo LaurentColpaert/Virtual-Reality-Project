@@ -115,7 +115,7 @@ public:
         Load_buffer(); 
     }
 
-    void draw(Camera camera,float width,float height){
+    void draw(Camera camera, glm::vec3 light_dir){
         tessHeightMapShader.use();
         glActiveTexture(GL_TEXTURE0+4);
         glBindTexture(GL_TEXTURE_2D, texture);
@@ -123,6 +123,12 @@ public:
         tessHeightMapShader.setMatrix4("projection",camera.GetProjectionMatrix());
         tessHeightMapShader.setMatrix4("view", camera.GetViewMatrix());
         tessHeightMapShader.setMatrix4("model", glm::mat4(1.0f));
+        tessHeightMapShader.setFloat("dir_light.ambient", 0.2f);
+        tessHeightMapShader.setFloat("dir_light.diffuse", 0.6f);
+        tessHeightMapShader.setFloat("dir_light.specular", 0.3f);
+        tessHeightMapShader.setVector3("dir_light.direction", light_dir);
+        tessHeightMapShader.setVector3("u_view_pos", camera.Position);
+
 
         // render the terrain
         glBindVertexArray(terrainVAO);

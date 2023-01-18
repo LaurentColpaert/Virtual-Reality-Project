@@ -27,26 +27,30 @@ public:
         set_rigid_body();
     }
 
-    void setup_spirit_shader(float ambient, float diffuse, float specular, glm::vec3 light_pos){
+    void setup_spirit_shader(float ambient, float diffuse, float specular, glm::vec3 light_pos, glm::vec3 light_dir){
         shader.use();
         glActiveTexture(GL_TEXTURE0+1);
         glBindTexture(GL_TEXTURE_2D, spirit_texture);
         shader.setInteger("my_texture",1);
-        shader.setFloat("shininess", 40.0f);
-        shader.setFloat("light.ambient_strength", 1.0);
-        shader.setFloat("light.diffuse_strength", 0.1);
-        shader.setFloat("light.specular_strength", 0.1);
-        shader.setFloat("light.constant", 1.4);
-        shader.setFloat("light.linear", 0.74);
-        shader.setFloat("light.quadratic", 0.27);
+        shader.setFloat("light.ambient_strength", 0.9);
+        shader.setFloat("light.diffuse_strength", 0.7);
+        shader.setFloat("light.specular_strength", 0.9);
+        shader.setFloat("light.constant", 0.9);
+        shader.setFloat("light.linear", 0.7);
+        shader.setFloat("light.quadratic", 0.0);
         shader.setVector3f("light.light_pos",light_pos);
+        shader.setVector3f("dir_light.direction",light_dir);
+        shader.setFloat("dir_light.ambient", 0.0f);
+        shader.setFloat("dir_light.diffuse", 0.6f);
+        shader.setFloat("dir_light.specular", 0.3f);
     }
 
-    void draw(Camera* camera){
+    void draw(Camera* camera, glm::vec3 light_pos){
         shader.use();
         glActiveTexture(GL_TEXTURE0+1);
         glBindTexture(GL_TEXTURE_2D, spirit_texture);
         shader.setInteger("my_texture",1);
+        shader.setVector3f("light.light_pos",light_pos);
 		shader.setVector3f("u_view_pos", camera->Position);
 		shader.setMatrix4("M", spirit->transform.model);
 		shader.setMatrix4("itM", glm::inverseTranspose(spirit->transform.model));
