@@ -14,12 +14,10 @@
 #include <string>
 #include <sstream>
 #include <vector>
-
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include<glm/gtc/matrix_transform.hpp>
-
 #include <btBulletDynamicsCommon.h>
 #include "./utils/transform.h"
 
@@ -244,6 +242,7 @@ public:
 		glBindVertexArray(0);
 	}
 
+	/** Create the vertex, texture and normal coordinate as well as the tangent, bitangent for a ground and link them to the buffer **/
 	void makeGround(Shader shader){
 		// positions
 		glm::vec3 pos1(-1.0f, 1.0f, 1.0f);

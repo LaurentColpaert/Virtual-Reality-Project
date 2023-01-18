@@ -1,15 +1,22 @@
+/**
+* @brief This header file defines the particle class. Based on the code of 'learnopengl'
+*
+* @author Adela Surca & Laurent Colpaert
+*
+* @project OpenGL project
+*
+**/
 #ifndef PARTICLE_H
 #define PARTICLE_H
-#include <vector>
 
+#include <vector>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
-
 #include "./simple_shader.h"
 #include "./spirit.h"
 #include "./camera.h"
 
-// Represents a single particle and its state
+/** Represents a single particle and its state **/
 struct Particle {
     glm::vec3 Position, Velocity;
     glm::vec4 Color;
@@ -18,9 +25,10 @@ struct Particle {
     Particle() : Position(0.0f), Velocity(0.0f), Color(1.0f), Life(10.0f) {}
 };
 
-// ParticleGenerator acts as a container for rendering a large number of 
-// particles by repeatedly spawning and updating particles and killing 
-// them after a given amount of time.
+/** @brief ParticleGenerator acts as a container for rendering a large number of 
+ * particles by repeatedly spawning and updating particles and killing 
+ * them after a given amount of time.
+**/
 class ParticleGenerator{
 public:
     std::vector<Particle> particles;
@@ -33,6 +41,7 @@ public:
     Spirit* spirit;
     Camera* camera;
 
+    /** Constructor **/
     ParticleGenerator(unsigned int amount,Spirit* spirit,Camera* camera){
         this->spirit = spirit;
         this->amount = amount;
@@ -42,6 +51,8 @@ public:
         init();
     }
 
+
+    /** Spawn the new particles and update the life and position of the particles **/
     void Update(float dt, unsigned int newParticles,Object* object, glm::vec3 offset = glm::vec3(0.0f)){
         // add new particles 
         for (unsigned int i = 0; i < newParticles; ++i){
@@ -59,8 +70,9 @@ public:
         }
     }
 
+    /** Bind your vertex arrays and call glDrawArrays and setup the MVP matrix **/
     void draw(){
-        // use additive blending to give it a 'glow' effect
+        //use additive blending to give it a 'glow' effect
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
         shader.use();
@@ -80,10 +92,11 @@ public:
                 glBindVertexArray(0);
             }
         }
-        // don't forget to reset to default blending mode
+        //Reset to default blending mode
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 
+    /** Create the vertex, texture coordinate for the particle and link them to the buffer **/
     void init(){
         // set up mesh and attribute properties
         unsigned int VBO;
@@ -96,6 +109,7 @@ public:
             1.0f, 1.0f, 0.0f,1.0f, 1.0f,
             1.0f, 0.0f, 0.0f,1.0f, 0.0f
         }; 
+
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
         glBindVertexArray(VAO);
@@ -119,6 +133,7 @@ public:
             this->particles.push_back(Particle());
     }
 
+    /** Find the first unused particle in the array of particle **/
     unsigned int firstUnusedParticle(){
         // first search from last used particle, this will usually return almost instantly
         for (unsigned int i = lastUsedParticle; i < amount; ++i){
@@ -139,6 +154,7 @@ public:
         return 0;
     }
 
+    /** Respawn a particle by setting it's life, position and velocity **/
     void respawnParticle(Particle &particle,Object* object, glm::vec3 offset = glm::vec3(0.0)){
         float random = ((rand() % 100) - 50) / 20.0f;
         float rColor = 0.5f + ((rand() % 100) / 100.0f);
@@ -154,6 +170,7 @@ public:
         }
     }
 
+    /** Load the texture into the 'texture_nb' channel with the appropriate parameters **/
     unsigned int loadTexture(char const * path, int texture_nb){
         unsigned int textureID;
         glGenTextures(1, &textureID);

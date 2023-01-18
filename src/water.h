@@ -1,18 +1,29 @@
+/**
+* @brief This header file defines the Water class.
+*
+* @author Adela Surca & Laurent Colpaert
+*
+* @project OpenGL project
+*
+**/
 #ifndef WATER_H
 #define WATER_H
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
-
 #include "./simple_shader.h"
 #include "./object.h"
 
+/**
+* @brief Class that handle a 3D plane object to move like waves
+**/
 class Water{
 public:
     Object plane;
     Shader water_shader = Shader(PATH_TO_SHADER "/water/water.vs", PATH_TO_SHADER "/water/water.fs"); 
 
+    /** Constructor **/
     Water(int length,float density_per_cell, float height){
         plane = Object();
         plane.makeObject(make_grid(length,density_per_cell),length*length*6*density_per_cell*density_per_cell,water_shader);
@@ -20,6 +31,7 @@ public:
         plane.transform.model = glm::translate(plane.transform.model, translate_vector);
     }
 
+    /** Setup the different parameters/uniform of the shaders used for the water **/
     void setup_water_shader(float ambient, float diffuse, float specular){
         water_shader.use();
         water_shader.setFloat("shininess", 40.0f);
@@ -32,7 +44,7 @@ public:
         
     }
 
-
+    /** Bind your vertex arrays and call glDrawArrays and setup the MVP matrix **/
     void draw(Camera camera, glm::vec3 materialColour, glm::vec3 light_pos, double now, GLuint sky_texture){
         water_shader.use();
         glActiveTexture(GL_TEXTURE0);
@@ -51,6 +63,7 @@ public:
     }
 
 private:
+    /** Create a grid based on the length and the density of cells **/
     std::vector<Vertex> make_grid(int length, float density_per_cell){
         std::vector<Vertex> vertices;
         float size = length * density_per_cell;

@@ -21,6 +21,9 @@
 
 #include <iostream>
 
+/**
+* @brief Class that handle the rotation, translation and scale and compute the model matrix for 3D objects
+**/
 class Transform{
 public:
     glm::vec3 scale;
@@ -29,6 +32,7 @@ public:
 
     glm::mat4 model;
 
+    /** Constructor **/
     Transform(){
         scale = glm::vec3(1);
         translation = glm::vec3(0);
@@ -56,6 +60,7 @@ public:
         return glm::vec3(model[3][0], model[3][1], model[3][2]);
     }
 
+    /** Update the model matrix based on the scale, rotation and translation**/
     void updateModelMatrix(){
         glm::mat4 mtx(1);
         mtx = glm::scale(mtx, scale);
@@ -66,6 +71,8 @@ public:
         mtx[3][2] += translation.z;
         model = mtx;
     }
+
+    /** Update the model matrix based on the scale, rotation and translation and adding an other model_matrix to the result**/
     void updateModelMatrix(glm::mat4 starting_matrix){
         glm::mat4 mtx(1);
         mtx = glm::scale(mtx, scale);
@@ -77,12 +84,14 @@ public:
         model = starting_matrix * mtx;
     }
 
+    /** Retrieve the forward vector base on the model matrix**/
     glm::vec3 get_forward(){
         glm::mat3 rotMat(model);;
         glm::vec3 forward = rotMat * glm::vec3(0, 0, 1);
         return glm::normalize(forward);
     }
 
+    /** Return a boolean according to the y coordinate being below a certain level**/
     bool is_below_level(float level){
         if (model[3][1] < level) return true;
         return false;

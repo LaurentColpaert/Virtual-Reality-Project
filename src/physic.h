@@ -1,3 +1,11 @@
+/**
+* @brief This header file defines the Physic class.
+*
+* @author Adela Surca & Laurent Colpaert
+*
+* @project OpenGL project
+*
+**/
 #ifndef PHYSIC_H
 #define PHYSIC_H
 
@@ -7,8 +15,10 @@
 
 #include "object.h"
 #include "camera.h"
-#include "utils/transform_conversion.h"
 
+/**
+* @brief Class that handle a physic engine
+**/
 class Physic{
 public:
     btDiscreteDynamicsWorld* dynamics_world;
@@ -25,10 +35,12 @@ public:
     float size_y = 1.0;
     float size_z = 0.5;
 
+    /** Constructor **/
     Physic(){
         initializeEngine();
     }
 
+    /** Initialize the physic engine and set the gravity**/
     void initializeEngine(){
         ///collision configuration contains default setup for memory, collision setup. Advanced users can create their own configuration.
         collision_configuration = new btDefaultCollisionConfiguration();
@@ -47,6 +59,8 @@ public:
     void setSpirit(Spirit* spi){
         spirit = spi;
     }
+
+    /** Add a sphere object by setting it's mass,shape and position**/
     void addSphere(Object *obj){
         btCollisionShape* shape = new btSphereShape(1.0f); // radius of 1.0
         // Create a motion state for the sphere
@@ -70,6 +84,8 @@ public:
         objects.push_back(obj);
     }
 
+    
+    /** Add a sphere object by setting it's mass,shape and position and adding an initial velocity**/
     void launch_sphere(Object *obj, int speed, Spirit spirit){
         btCollisionShape* shape = new btSphereShape(1.0f); // radius of 1.0
         // Create a motion state for the sphere
@@ -95,6 +111,7 @@ public:
     }
 
 
+    /** Add a cube object by setting it's mass,shape and position**/
     void addCube(Object *obj){
         btCollisionShape* shape = new btBoxShape(btVector3(obj->transform.scale.x,obj->transform.scale.y,obj->transform.scale.z)); // radius of 1.0
         // Create a motion state for the cube
@@ -115,6 +132,7 @@ public:
         objects.push_back(obj);
     }
 
+    /** Add rigidbody of the spirit to the physic engine**/
     void addSpirit(Spirit *obj){
         Object *spirit = obj->getObject();
         btRigidBody* body = obj->getRigidBody();
@@ -123,6 +141,7 @@ public:
         objects.push_back(obj->spirit);
     }
 
+    /** Add rigidbody of the ground to the physic engine**/
     void addGround(Ground *obj){
         Object *ground = obj->getObject();
         btRigidBody* body = obj->getRigidBody();
@@ -131,27 +150,7 @@ public:
         objects.push_back(obj->ground);
     }
     
-    void addTerrainToWorld(Terrain& terrain){
-        // Create a triangle mesh shape for the terrain
-        btCollisionShape* shape = terrain.shape;
-
-        // Create a motion state for the terrain
-        btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 32, 0)));
-
-        // Create a rigid body for the terrain
-        btRigidBody::btRigidBodyConstructionInfo constructionInfo(0, motionState, shape, btVector3(0, 0, 0));
-        btRigidBody* body = new btRigidBody(constructionInfo);
-
-        // Add the rigid body to the dynamics world
-        dynamics_world->addRigidBody(body);
-
-        Object* obj = terrain.terrain_obj;
-        body->setUserPointer(obj);
-        dynamics_world->addRigidBody(body);
-        obj->rigid = body;
-        objects.push_back(obj);
-    }
-
+    /** Update the physic engine and retrieve all the coordinate of the rigidbodies to move the model of each 3D object **/
     void update(){
         bool spirit_updated = false;
         dynamics_world->stepSimulation(1.f / 60.f, 1);
@@ -180,6 +179,7 @@ public:
                 // Retrieve the object associated with the rigid body
                 Object* object = static_cast<Object*>(body->getUserPointer());
 
+                //Exceptions
                 if (object->name == "ground") continue;
                 if (object->name == "spirit") {
                     gl_position.y -= 1;
@@ -191,6 +191,7 @@ public:
                 object->transform.updateModelMatrix();
             }
         }
+        // Update the spirit even if it doesn't collide ( use to make the character controller work)
         if (spirit_updated){
             btTransform transform;
             spirit->getRigidBody()->getMotionState()->getWorldTransform(transform);

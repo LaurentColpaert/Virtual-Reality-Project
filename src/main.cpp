@@ -16,10 +16,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/string_cast.hpp>
-
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-
 #include "./camera.h"
 #include "./simple_shader.h"
 #include "./tess_shader.h"
@@ -32,9 +30,11 @@
 #include "./physic.h"
 #include "./particles.h"
 #include "./utils/debug.h"
-#include "./utils/callbacks.h"
 #include "./utils/fps.h"
 
+
+// Functions of the main
+GLFWwindow* setup_window();
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -43,19 +43,19 @@ Object* create_launch_sphere(Shader shader, Physic physic, Spirit spirit);
 void render_scene(Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos,glm::vec3 light_dir, Object sphere, double now,glm::mat4 lightspace,ParticleGenerator particle);
 void render_depth_scene(Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now);
 
+//Parameters
 int speed = 1;
 float degree_rotation = 2.0;
-
 int src_width = 700;
 const int src_height = 700;
 float lastX = src_width / 2.0f;
 float lastY = src_height / 2.0f;
 bool firstMouse = true;
+double now;
+bool sphere_launched = false;
 
 std::vector<Object*> cubes;
 std::vector<Object*> launched_spheres;
-double now;
-bool sphere_launched = false;
 
 Camera* camera = new Camera(glm::vec3(0, 65.0, -25));
 
@@ -65,6 +65,7 @@ int main(int argc, char* argv[])
 	if (!glfwInit()) {
 		throw std::runtime_error("Failed to initialise GLFW \n");
 	}
+	//Select the minimum version of GLFW
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -74,62 +75,37 @@ int main(int argc, char* argv[])
 	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 #endif
 
-	GLFWwindow* window = glfwCreateWindow(src_width, src_height, "Project", nullptr, nullptr);
-	if (window == NULL)
-	{
-		glfwTerminate();
-		throw std::runtime_error("Failed to create GLFW window\n");
-	}
-	glfwMakeContextCurrent(window);
+	GLFWwindow* window = setup_window();
 	
-	//load openGL function
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) throw std::runtime_error("Failed to initialize GLAD");
-	
-	//glfwSetCursorPosCallback(window, mouse_callback);
-	glfwSetScrollCallback(window, scroll_callback);
-	glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
-	glViewport(0,0,src_width,src_height);
-	
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);  
-	glPatchParameteri(GL_PATCH_VERTICES,4);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);	// set texture wrapping to GL_REPEAT (default wrapping method)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_READ_COLOR_ARB);
-	// set texture filtering parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	//comment to use texture
+	//To display vertex
 	// glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-	//comment to stop using the mouse to move
+	//To make the mouse interactive
 	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	FPS fps = FPS(window);
 #ifndef NDEBUG
 	call_debug();
 #endif
-	Physic physic = Physic();
 
+	//Generate the shaders
 	Shader simple_shader(PATH_TO_SHADER "/simple.vs", PATH_TO_SHADER "/simple.fs");
 	Shader depth_shader(PATH_TO_SHADER "/depth/depth.vs", PATH_TO_SHADER "/depth/depth.fs");
 	Shader debugDepthQuad(PATH_TO_SHADER "/depth/debug_depth.vs", PATH_TO_SHADER "/depth/debug_depth.fs");
-	
+	Physic physic = Physic();
+
+
+	//Create all the 3D object of the scene
 	Terrain terrain = Terrain();
 	Skybox skybox = Skybox();
 	Water water = Water(1000,1.0, 45.0);	
 	Ground ground = Ground();
 	Spirit spirit = Spirit(glm::vec3(1,60,1));
-	physic.setSpirit(&spirit);
 	ParticleGenerator* particle = new ParticleGenerator(200,&spirit,camera);
 
-	physic.addGround(&ground);
-	physic.addSpirit(&spirit);
 
 	Object sphere = Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 	sphere.makeObject(simple_shader);
 	sphere.transform.setTranslation(glm::vec3(0,60,0));
 	sphere.transform.updateModelMatrix(sphere.transform.model);
-	physic.addSphere(&sphere);
 
 	Object plane_test = Object(PATH_TO_OBJECTS "/plane.obj");
 	plane_test.makeObject(debugDepthQuad,true);
@@ -149,11 +125,16 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	//Shadow  depth map
+	//Add the 3D object to the physic engine
+	physic.addGround(&ground);
+	physic.setSpirit(&spirit);
+	physic.addSpirit(&spirit);
+	physic.addSphere(&sphere);
+
+	//Setup the texture for the shadow map
 	const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
-    // create depth texture
     unsigned int depthMap;
     glGenTextures(1, &depthMap);
     glBindTexture(GL_TEXTURE_2D, depthMap);
@@ -171,17 +152,18 @@ int main(int argc, char* argv[])
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	//Initiate lights coordinate
 	glm::vec3 light_dir = glm::vec3(-30.0, 70.0, 30.0);
 	glm::vec3 light_pos = glm::vec3(0.0, 53.0, 0.0);
 	
+
+	//Setup the texture for the debugger of the shadows
 	debugDepthQuad.use();
 	debugDepthQuad.setInteger("depthMap", 6);
 	
+	//Setup the simple shader parameters
 	simple_shader.use();
 	simple_shader.setFloat("shininess", 40.0f);
-	// simple_shader.setFloat("light.ambient_strength", 0);
-	// simple_shader.setFloat("light.diffuse_strength", 0);
-	// simple_shader.setFloat("light.specular_strength", 0);
 	simple_shader.setFloat("light.ambient_strength", 0.2);
 	simple_shader.setFloat("light.diffuse_strength", 0.7);
 	simple_shader.setFloat("light.specular_strength", 0.9);
@@ -251,7 +233,7 @@ int main(int argc, char* argv[])
 
 		render_scene(simple_shader,terrain, skybox, water, spirit, ground, delta,light_dir, sphere,now,lightspace,*particle);
 
-		// render Depth map to quad for visual debugging
+		// Used for debbuging the shadows
         // debugDepthQuad.use();
         // debugDepthQuad.setFloat("near_plane", near_plane);
         // debugDepthQuad.setFloat("far_plane", far_plane);
@@ -277,12 +259,14 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
+/** Callback used to resize the window **/
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){
 	src_width = width;
 	glViewport(0,0,width,width);
 	camera->setRatio(width,width);
 }
 
+/** Callback used to handle the mouse input **/
 void mouse_callback(GLFWwindow* window, double xpos, double ypos){
 	if (firstMouse){
 		lastX = xpos;
@@ -299,32 +283,40 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos){
 	camera->ProcessMouseMovement(xoffset, yoffset);
 }
 
+/** Callback used to handle the scroll's mouse input **/
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
 	camera->ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
+/** Create a sphere and launch it in the forward vector of the spirit **/
 Object* create_launch_sphere(Shader shader, Physic physic, Spirit spirit){
+	//setup the sphere
 	Object* sphere = new  Object(PATH_TO_OBJECTS "/sphere_smooth.obj");
 	sphere->makeObject(shader);
 	glm::vec3 dir = spirit.getObject()->transform.get_forward();
 	glm::vec3 position = spirit.getObject()->transform.getWorldTranslation() + dir * glm::vec3(1,0,1);
 	sphere->transform.setTranslation(position);
 	sphere->transform.updateModelMatrix(sphere->transform.model);
+
+	//add the sphere to the physics engine and gives it a speed
 	physic.launch_sphere(sphere, 2000, spirit);
+
+	//add the sphere to the arrays of sphere
 	launched_spheres.push_back(sphere);
 	return sphere;
 }
 
+/** Render the color pass of the scene. it draws all the 3D objects of the scene **/
 void render_scene(Shader shader,Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos,glm::vec3 light_dir, Object sphere, double now,glm::mat4 lightspace,ParticleGenerator particle){
 	glm::vec3 materialColour = glm::vec3(0.17,0.68,0.89);	
 
 	terrain.draw(*camera,light_dir);
 	skybox.draw(*camera);
 	
-	water.draw(*camera,materialColour,light_pos,now, skybox.getSkyTexture());
-
 	ground.set_lightspace(lightspace);
 	ground.draw(camera);
+	water.draw(*camera,materialColour,light_pos,now, skybox.getSkyTexture());
+
 	spirit.draw(camera,light_pos);
 
 	shader.use();
@@ -357,11 +349,12 @@ void render_scene(Shader shader,Terrain terrain, Skybox skybox, Water water, Spi
 	}
 }
 
+/** Render the depth pass of the scene. it draws all the 3D objects of the scene that interact with shadows**/
 void render_depth_scene(Shader shader, Terrain terrain, Skybox skybox, Water water, Spirit spirit, Ground ground, glm::vec3 light_pos, Object sphere, double now){
 	glm::vec3 materialColour = glm::vec3(0.17,0.68,0.89);
 
-	spirit.draw_depth(camera, shader);
 	ground.draw_depth(camera, shader);
+	spirit.draw_depth(camera, shader);
 
 	shader.use();
 	shader.setMatrix4("M", sphere.transform.model);
@@ -380,8 +373,9 @@ void render_depth_scene(Shader shader, Terrain terrain, Skybox skybox, Water wat
 	}
 }
 
-/**Handle the input of the keyboard and launch the corresponding function**/
+/** Handle the input of the keyboard and launch the corresponding function **/
 void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit, ParticleGenerator* particle){
+	//Handle the camera input
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)		glfwSetWindowShouldClose(window, true);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)			camera->ProcessKeyboardMovement(LEFT, 0.1);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)		    camera->ProcessKeyboardMovement(RIGHT, 0.1);
@@ -391,7 +385,8 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)		camera->ProcessKeyboardRotation(-1, 0.0, 1);
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)		    camera->ProcessKeyboardRotation(0.0, 1.0, 1);
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)		camera->ProcessKeyboardRotation(0.0, -1.0, 1);
-	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS){ //forward
+	//To move forward
+	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS){ 
 		glm::vec3 dir = spirit.getObject()->transform.get_forward();
 		btVector3 bt_dir = btVector3(dir.x,dir.y,dir.z);
 		btTransform xform = spirit.getRigidBody()->getWorldTransform();
@@ -401,7 +396,8 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 		spirit.getRigidBody()->activate(true);
 		spirit.getRigidBody()->setLinearVelocity(btVector3(vel[0], cur[1], vel[2]));
 	}
-	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS){ //Turn left
+	//To turn left
+	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS){ 
 		btTransform transform = spirit.getRigidBody()->getWorldTransform();
 		btQuaternion rotation = transform.getRotation();
 		btQuaternion q; // Quaternion to rotate
@@ -416,7 +412,8 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 		spirit.getObject()->transform.setRotation(glm::eulerAngles(gl_orientation));
 		spirit.getObject()->transform.updateModelMatrix();
 	}
-	if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS){//backward
+	//To move backward
+	if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS){
 		glm::vec3 dir = spirit.getObject()->transform.get_forward();
 		btVector3 bt_dir = btVector3(dir.x,dir.y,dir.z);
 		btTransform xform = spirit.getRigidBody()->getWorldTransform();
@@ -426,7 +423,8 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 		spirit.getRigidBody()->activate(true);
 		spirit.getRigidBody()->setLinearVelocity(btVector3(-vel[0], cur[1], -vel[2]));
 	}
-	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS){ //turn right
+	//To turn right
+	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS){
 		btTransform transform = spirit.getRigidBody()->getWorldTransform();
 		btQuaternion rotation = transform.getRotation();
 		btQuaternion q; // Quaternion to rotate
@@ -441,10 +439,12 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 		spirit.getObject()->transform.setRotation(glm::eulerAngles(gl_orientation));
 		spirit.getObject()->transform.updateModelMatrix();
 	}
+	//To stop the spirit from moving
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){ 
 		spirit.getRigidBody()->setLinearVelocity(btVector3(0.0,0.0,0.0));
 		spirit.getRigidBody()->setAngularVelocity(btVector3(0.0,0.0,0.0));
 	}
+	//Create the sphere
 	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS){
 		if (!sphere_launched){
 			Object* sphere = create_launch_sphere(shader,physic,spirit);
@@ -459,4 +459,27 @@ void processInput(GLFWwindow* window, Shader shader,Physic physic, Spirit spirit
 			}
 		}
 	}
+}
+
+/** Setup the parameters and callback of the windows **/
+GLFWwindow* setup_window(){
+	GLFWwindow* window = glfwCreateWindow(src_width, src_height, "Project", nullptr, nullptr);
+	if (window == NULL)
+	{
+		glfwTerminate();
+		throw std::runtime_error("Failed to create GLFW window\n");
+	}
+	glfwMakeContextCurrent(window);
+	
+	//load openGL function
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) throw std::runtime_error("Failed to initialize GLAD");
+	
+	//glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
+	glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
+	glViewport(0,0,src_width,src_height);
+	
+	glEnable(GL_DEPTH_TEST);
+	glPatchParameteri(GL_PATCH_VERTICES,4);
+	return window;
 }

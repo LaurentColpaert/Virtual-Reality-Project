@@ -1,13 +1,23 @@
+/**
+* @brief This header file defines the Spirit class.
+*
+* @author Adela Surca & Laurent Colpaert
+*
+* @project OpenGL project
+*
+**/
 #ifndef SPIRIT_H
 #define SPIRIT_H
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
-
 #include "./simple_shader.h"
 #include "./object.h"
 
+/**
+* @brief Class that handle a 3D spirit object with textures and physics
+**/
 class Spirit{
 public:
     Object* spirit;
@@ -15,18 +25,23 @@ public:
     btRigidBody* rigid_body;
     unsigned int spirit_texture;
 
+    /** Constructor **/
     Spirit(glm::vec3 translation){
+        //Setup the 3D object
         spirit = new Object(PATH_TO_OBJECTS "/spirit.obj",true);
         spirit->makeObject(shader,true);
         spirit->transform.translation = translation;
         spirit->transform.updateModelMatrix();
         
+        // Load the texture 
         spirit_texture = loadTexture(PATH_TO_TEXTURE "/spirit_uv.jpg",1);
-        // load_texture();
         spirit->setName("spirit");
+
+        //Create the rigidbody for 3D object
         set_rigid_body();
     }
 
+    /** Setup the different parameters/uniform of the shaders used for the 3D object **/
     void setup_spirit_shader(float ambient, float diffuse, float specular, glm::vec3 light_pos, glm::vec3 light_dir){
         shader.use();
         glActiveTexture(GL_TEXTURE0+1);
@@ -45,6 +60,7 @@ public:
         shader.setFloat("dir_light.specular", 0.3f);
     }
 
+    /** Bind your vertex arrays and call glDrawArrays and setup the MVP matrix **/
     void draw(Camera* camera, glm::vec3 light_pos){
         shader.use();
         glActiveTexture(GL_TEXTURE0+1);
@@ -59,6 +75,7 @@ public:
 		spirit->draw();
     }  
 
+    /** Bind your vertex arrays and call glDrawArrays withou VP matrix for the depth pass **/
     void draw_depth(Camera* camera, Shader shader){
         shader.use();
 		shader.setMatrix4("M", spirit->transform.model);
@@ -72,6 +89,7 @@ public:
         return this->rigid_body;
     }
 
+    /** Load the texture into the 'texture_nb' channel with the appropriate parameters **/
     unsigned int loadTexture(char const * path, int texture_nb){
         unsigned int textureID;
         glGenTextures(1, &textureID);
@@ -97,6 +115,7 @@ public:
     }
 private:
 
+    /** Setup the rigidbody of the plane (mass, position, shape) to interact with the physic engine**/
     void set_rigid_body(){
         btCollisionShape* shape = new btSphereShape(1);
         // Create a motion state for the cube

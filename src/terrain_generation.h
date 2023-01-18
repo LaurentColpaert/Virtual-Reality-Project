@@ -1,3 +1,11 @@
+/**
+* @brief This header file defines the Terrain class.
+*
+* @author Adela Surca & Laurent Colpaert
+*
+* @project OpenGL project
+*
+**/
 #ifndef TERRAIN_H
 #define TERRAIN_H
 
@@ -14,7 +22,9 @@ const float SIZE_X = 128.0f;
 const float SIZE_Y = 10.0f;
 const float SIZE_Z = 128.0f;
 
-
+/**
+* @brief Class that handle a 3D terrain object with a tesselation shader
+**/
 class Terrain{
 public:
     TShader tessHeightMapShader = TShader(PATH_TO_SHADER "/terrain_generation/height.vs",PATH_TO_SHADER "/terrain_generation/height.fs",nullptr,PATH_TO_SHADER "/terrain_generation/height.tcs", PATH_TO_SHADER "/terrain_generation/height.tes");
@@ -27,19 +37,18 @@ public:
     Object* terrain_obj;
     btCollisionShape* shape;
     short int *heightData;
-    std::vector<short int> temp;
     unsigned int texture;
 
+    /** Constructor**/
     Terrain(){
+        //Setup the 3D object
         terrain_obj = new Object();
-        // Load the image of the mipmaps
+
+        // Load the texture and the height values
         glGenTextures(1, &texture);
         glActiveTexture(GL_TEXTURE0+4);
-        glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-        
-         // load image, create texture and generate mipmaps
+        glBindTexture(GL_TEXTURE_2D, texture); 
         int width, height, nrChannels;
-        // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
         unsigned char *data = stbi_load(PATH_TO_TEXTURE "/new_island.png", &width, &height, &nrChannels, 0);
         if (data)
         {
@@ -53,7 +62,6 @@ public:
                 for (int x = 0; x < width; x++) {
                     // Extract the height value from the red channel of the pixel at position (x, y)
                     heightData[y * width + x] = (short int) data[(y * width + x)];
-                    temp.push_back(data[(y * width + x)]);
                 }
             }
         }
@@ -62,24 +70,11 @@ public:
             std::cout << "Failed to load texture" << std::endl;
         }
         stbi_image_free(data);
+
         terrain_width = width;
         terrain_height = height;
 
-        shape = new btHeightfieldTerrainShape(terrain_height,
-            terrain_width,
-            heightData,
-            64.0/255.0,
-            0,
-            64,
-            1,
-            PHY_SHORT,
-            false
-        );
-        btVector3 aabbMin, aabbMax;
-        shape->getAabb(btTransform::getIdentity(), aabbMin, aabbMax);
-        std::cout << "Min AABB: " << "(" << aabbMin[0] << ", " << aabbMin[1] << ", " << aabbMin[2] << ")" << std::endl;
-        std::cout << "Max AABB: " << "(" << aabbMax[0] << ", " << aabbMax[1] << ", " << aabbMax[2] << ")" << std::endl;
-
+        
         // vertex generation
         for(unsigned i = 0; i <= rez-1; i++)
         {
@@ -115,6 +110,8 @@ public:
         Load_buffer(); 
     }
 
+
+    /** Bind your vertex arrays and call glDrawArrays and setup the MVP matrix **/
     void draw(Camera camera, glm::vec3 light_dir){
         tessHeightMapShader.use();
         glActiveTexture(GL_TEXTURE0+4);
@@ -129,20 +126,18 @@ public:
         tessHeightMapShader.setVector3("dir_light.direction", light_dir);
         tessHeightMapShader.setVector3("u_view_pos", camera.Position);
 
-
-        // render the terrain
         glBindVertexArray(terrainVAO);
         glDrawArrays(GL_PATCHES, 0, NUM_PATCH_PTS*rez*rez);
     }
 
+    /** Destroy the buffers of the terrain **/
     void destroy(){
         glDeleteVertexArrays(1, &terrainVAO);
         glDeleteBuffers(1, &terrainVBO);
     }
 
-    
-
 private:
+    /** Load the vertex information and link them to the buffer **/
     void Load_buffer(){
         glGenVertexArrays(1, &terrainVAO);
         glBindVertexArray(terrainVAO);

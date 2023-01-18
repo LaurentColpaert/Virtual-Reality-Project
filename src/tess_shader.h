@@ -1,3 +1,11 @@
+/**
+* @brief This header file defines the TShader class.
+*
+* @author Adela Surca & Laurent Colpaert
+*
+* @project OpenGL project
+*
+**/
 #ifndef TSHADER_H
 #define TSHADER_H
 
@@ -9,15 +17,18 @@
 #include <sstream>
 #include <iostream>
 
+/**
+* @brief Class that handle the different shader of a pipeline
+**/
 class TShader{
 public:
     unsigned int ID;
-    // constructor generates the shader on the fly
-    // ------------------------------------------------------------------------
+
+    /** Constructor **/
     TShader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr,
            const char* tessControlPath = nullptr, const char* tessEvalPath = nullptr)
     {
-        // 1. retrieve the vertex/fragment source code from filePath
+        // retrieve the vertex/fragment source code from filePath
         std::string vertexCode;
         std::string fragmentCode;
         std::string geometryCode;
@@ -36,14 +47,11 @@ public:
         teShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
         try
         {
-            // open files
             vShaderFile.open(vertexPath);
             fShaderFile.open(fragmentPath);
             std::stringstream vShaderStream, fShaderStream;
-            // read file's buffer contents into streams
             vShaderStream << vShaderFile.rdbuf();
             fShaderStream << fShaderFile.rdbuf();
-            // close file handlers
             vShaderFile.close();
             fShaderFile.close();
             // convert stream into string
@@ -139,74 +147,75 @@ public:
             glDeleteShader(geometry);
 
     }
-    // activate the shader
-    // ------------------------------------------------------------------------
+    
+    /** Activate the shader **/
     void use()
     {
         glUseProgram(ID);
     }
-    // utility uniform functions
-    // ------------------------------------------------------------------------
+
     void setBool(const std::string &name, bool value) const
     {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
     }
-    // ------------------------------------------------------------------------
+
     void setInteger(const std::string &name, int value) const
     {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
     }
-    // ------------------------------------------------------------------------
+
     void setFloat(const std::string &name, float value) const
     {
         glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
     }
-    // ------------------------------------------------------------------------
+
     void setVector2(const std::string &name, const glm::vec2 &value) const
     {
         glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
     }
+
     void setVector2(const std::string &name, float x, float y) const
     {
         glUniform2f(glGetUniformLocation(ID, name.c_str()), x, y);
     }
-    // ------------------------------------------------------------------------
+
     void setVector3(const std::string &name, const glm::vec3 &value) const
     {
         glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
     }
+
     void setVector3(const std::string &name, float x, float y, float z) const
     {
         glUniform3f(glGetUniformLocation(ID, name.c_str()), x, y, z);
     }
-    // ------------------------------------------------------------------------
+
     void setVector4(const std::string &name, const glm::vec4 &value) const
     {
         glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
     }
+
     void setVector4(const std::string &name, float x, float y, float z, float w)
     {
         glUniform4f(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
     }
-    // ------------------------------------------------------------------------
+
     void setMatrix2(const std::string &name, const glm::mat2 &mat) const
     {
         glUniformMatrix2fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
-    // ------------------------------------------------------------------------
+
     void setMatrix3(const std::string &name, const glm::mat3 &mat) const
     {
         glUniformMatrix3fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
-    // ------------------------------------------------------------------------
+
     void setMatrix4(const std::string &name, const glm::mat4 &mat) const
     {
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
 
 private:
-    // utility function for checking shader compilation/linking errors.
-    // ------------------------------------------------------------------------
+    /** Utility function for checking shader compilation/linking errors **/
     void checkCompileErrors(GLuint shader, std::string type)
     {
         GLint success;

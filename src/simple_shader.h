@@ -1,3 +1,11 @@
+/**
+* @brief This header file defines the Shader class.
+*
+* @author Adela Surca & Laurent Colpaert
+*
+* @project OpenGL project
+*
+**/
 #ifndef SHADER_H
 #define SHADER_H
 
@@ -8,14 +16,18 @@
 #include <sstream>
 #include <iostream>
 
+/**
+ * @brief Class that handle the vertex and framgent shader of a pipeline
+**/
 class Shader
 {
 public:
 	GLuint ID;
 
+    /** Constructor **/
 	Shader(const char* vertexPath, const char* fragmentPath)
 	{
-        // 1. retrieve the vertex/fragment source code from filePath
+        // Retrieve the vertex/fragment source code from filePath
         std::string vertexCode;
         std::string fragmentCode;
         std::ifstream vShaderFile;
@@ -58,9 +70,11 @@ public:
         ID = compileProgram(vertex, fragment);
     }
 
+    /** Activate the shader **/
     void use() {
         glUseProgram(ID);
     }
+
     void setInteger(const GLchar *name, GLint value) {
         glUniform1i(glGetUniformLocation(ID, name), value);
     }
@@ -81,6 +95,8 @@ public:
     }
 
 private:
+
+    /** Compile the shader into readable format for OpenGL**/
     GLuint compileShader(std::string shaderCode, GLenum shaderType)
     {
         GLuint shader = glCreateShader(shaderType);
@@ -106,6 +122,7 @@ private:
         return shader;
     }
 
+    /** Compile the program and link the vertex and fragment shader to it**/
     GLuint compileProgram(GLuint vertexShader, GLuint fragmentShader)
     {
         GLuint programID = glCreateProgram();

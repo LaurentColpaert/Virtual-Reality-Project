@@ -1,3 +1,11 @@
+/**
+* @brief This header file defines the Ground class.
+*
+* @author Adela Surca & Laurent Colpaert
+*
+* @project OpenGL project
+*
+**/
 #ifndef GROUND_H
 #define GROUND_H
 
@@ -8,6 +16,9 @@
 #include "./simple_shader.h"
 #include "./object.h"
 
+/**
+* @brief Class that handle a 3D plane object with textures
+**/
 class Ground{
 public:
     Object* ground;
@@ -17,7 +28,9 @@ public:
     
     btRigidBody* rigid_body;
 
+    /** Constructor **/
     Ground(){
+        //Setup the 3D plane Object
         ground = new Object();
         ground->numVertices = 6;    
         ground->makeGround(shader);
@@ -25,30 +38,26 @@ public:
         ground->transform.setScale(glm::vec3(25.0,1.0,25.0));
         ground->transform.updateModelMatrix();
 
+        //Load the textures
         diffuseMap = loadTexture(PATH_TO_TEXTURE "/ground/stone_basecolor.jpg",2);
         normalMap  = loadTexture(PATH_TO_TEXTURE "/ground/stone_normal.jpg",3);
         
         ground->setName("ground");
-                
+
+        //Create the rigidbody for the plane
         set_rigid_body();
     }
 
+    /** Setup the different parameters/uniform of the shaders used for the ground **/
     void setup_ground_shader(glm::vec3 light_pos){
         shader.use();
         shader.setInteger("shadowMap",6);
         shader.setInteger("diffuseMap", 2);
         shader.setInteger("normalMap", 3);
-        // shader.setFloat("shininess", 40.0f);
-        // shader.setFloat("light.ambient_strength", 1.0);
-        // shader.setFloat("light.diffuse_strength", 0.1);
-        // shader.setFloat("light.specular_strength", 0.1);
-        // shader.setFloat("light.constant", 1.4);
-        // shader.setFloat("light.linear", 0.74);
-        // shader.setFloat("light.quadratic", 0.27);
-        // shader.setVector3f("light.light_pos",light_pos);
         shader.setVector3f("lightPos",light_pos);
     }
 
+    /** Setup the uniform lightspace for the shaders used (parameter used for the shadows) **/
     void set_lightspace(glm::mat4 lightspace){
         shader.use();
         shader.setMatrix4("lightspace",lightspace);
@@ -56,14 +65,9 @@ public:
 
 
 
+    /** Bind your vertex arrays and call glDrawArrays and setup the MVP matrix **/
     void draw(Camera* camera){
         shader.use();
-        // glActiveTexture(GL_TEXTURE0+2);
-        // glBindTexture(GL_TEXTURE_2D, diffuseMap);
-        // shader.setInteger("diffuseMap", 2);
-        // glActiveTexture(GL_TEXTURE0+3);
-        // glBindTexture(GL_TEXTURE_2D, normalMap);
-        // shader.setInteger("normalMap", 3);
 		shader.setVector3f("viewPos", camera->Position);
 		shader.setMatrix4("M", ground->transform.model);
 		shader.setMatrix4("V", camera->GetViewMatrix());
@@ -71,6 +75,7 @@ public:
 		ground->draw();
     }  
 
+    /** Bind your vertex arrays and call glDrawArrays withou VP matrix for the depth pass **/
     void draw_depth(Camera* camera,Shader shader){
         shader.use();
 		shader.setMatrix4("M", ground->transform.model);
@@ -90,6 +95,7 @@ public:
     }
 
 private:
+    /** Load the texture into the 'texture_nb' channel with the appropriate parameters **/
     unsigned int loadTexture(char const * path, int texture_nb){
         unsigned int textureID;
         glGenTextures(1, &textureID);
@@ -127,6 +133,7 @@ private:
         return textureID;
     }
 
+    /** Setup the rigidbody of the plane (mass, position, shape) to interact with the physic engine**/
     void set_rigid_body(){
         btCollisionShape* groundShape = new btBoxShape(btVector3(ground->transform.scale.x, 1.0, ground->transform.scale.z));
 
